@@ -539,6 +539,217 @@ describe('Week 2: Card Model and CRUD Foundation', () => {
     });
   });
 
+  describe('PATCH /api/cards/:id/move (Card Movement & Reordering)', () => {
+    const targetCardId = new mongoose.Types.ObjectId();
+    const sourceListId = validListId;
+    const destinationListId = new mongoose.Types.ObjectId();
+
+    it('should successfully move a card to another list on the same board and update position', async () => {
+      const mockCardDoc = new Card({
+        _id: targetCardId,
+        title: 'Task to Move',
+        list: sourceListId,
+        board: validBoardId,
+        position: 1000,
+      });
+
+      const mockDestListDoc = new List({
+        _id: destinationListId,
+        name: 'Done List',
+        board: validBoardId,
+      });
+
+      const mockBoardDoc = new Board({
+        _id: validBoardId,
+        name: 'Sprint Board',
+        workspace: validWorkspaceId,
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: validWorkspaceId,
+        user: mockUserId,
+        role: 'member',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Card, 'findById').mockResolvedValue(mockCardDoc);
+      jest.spyOn(List, 'findById').mockResolvedValue(mockDestListDoc);
+      jest.spyOn(Board, 'findById').mockResolvedValue(mockBoardDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+      jest.spyOn(mockCardDoc, 'save').mockResolvedValue(mockCardDoc);
+      jest.spyOn(mockCardDoc, 'populate').mockResolvedValue(mockCardDoc);
+
+      const res = await request(app)
+        .patch(`/api/cards/${targetCardId.toString()}/move`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          destinationListId: destinationListId.toString(),
+          position: 2500,
+        });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(mockCardDoc.list.toString()).toBe(destinationListId.toString());
+      expect(mockCardDoc.position).toBe(2500);
+    });
+
+    it('should successfully move a card within the same list (reordering)', async () => {
+      const mockCardDoc = new Card({
+        _id: targetCardId,
+        title: 'Reorder Task',
+        list: sourceListId,
+        board: validBoardId,
+        position: 3000,
+      });
+
+      const mockSourceListDoc = new List({
+        _id: sourceListId,
+        name: 'To Do',
+        board: validBoardId,
+      });
+
+      const mockBoardDoc = new Board({
+        _id: validBoardId,
+        name: 'Board',
+        workspace: validWorkspaceId,
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: validWorkspaceId,
+        user: mockUserId,
+        role: 'member',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Card, 'findById').mockResolvedValue(mockCardDoc);
+      jest.spyOn(List, 'findById').mockResolvedValue(mockSourceListDoc);
+      jest.spyOn(Board, 'findById').mockResolvedValue(mockBoardDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+      jest.spyOn(mockCardDoc, 'save').mockResolvedValue(mockCardDoc);
+      jest.spyOn(mockCardDoc, 'populate').mockResolvedValue(mockCardDoc);
+
+      const res = await request(app)
+        .patch(`/api/cards/${targetCardId.toString()}/move`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          destinationListId: sourceListId.toString(),
+          position: 500, // Move to front
+        });
+
+      expect(res.status).toBe(200);
+      expect(mockCardDoc.list.toString()).toBe(sourceListId.toString());
+      expect(mockCardDoc.position).toBe(500);
+    });
+
+    it('should reject move with HTTP 400 when destination list belongs to a different board', async () => {
+      const foreignBoardId = new mongoose.Types.ObjectId();
+      const mockCardDoc = new Card({
+        _id: targetCardId,
+        title: 'Task',
+        list: sourceListId,
+        board: validBoardId,
+      });
+
+      const mockForeignListDoc = new List({
+        _id: destinationListId,
+        name: 'Foreign List',
+        board: foreignBoardId, // Different board!
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Card, 'findById').mockResolvedValue(mockCardDoc);
+      jest.spyOn(List, 'findById').mockResolvedValue(mockForeignListDoc);
+
+      const res = await request(app)
+        .patch(`/api/cards/${targetCardId.toString()}/move`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          destinationListId: destinationListId.toString(),
+          position: 1000,
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/Destination list must belong to the same board/);
+    });
+
+    it('should return HTTP 403 Forbidden when requesting user is NOT a workspace member', async () => {
+      const mockCardDoc = new Card({
+        _id: targetCardId,
+        title: 'Task',
+        list: sourceListId,
+        board: validBoardId,
+      });
+
+      const mockDestListDoc = new List({
+        _id: destinationListId,
+        name: 'Done List',
+        board: validBoardId,
+      });
+
+      const mockBoardDoc = new Board({
+        _id: validBoardId,
+        name: 'Board',
+        workspace: validWorkspaceId,
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Card, 'findById').mockResolvedValue(mockCardDoc);
+      jest.spyOn(List, 'findById').mockResolvedValue(mockDestListDoc);
+      jest.spyOn(Board, 'findById').mockResolvedValue(mockBoardDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(null);
+
+      const res = await request(app)
+        .patch(`/api/cards/${targetCardId.toString()}/move`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          destinationListId: destinationListId.toString(),
+          position: 1000,
+        });
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toMatch(/not a member/);
+    });
+
+    it('should return HTTP 404 Not Found when destination list does not exist', async () => {
+      const mockCardDoc = new Card({
+        _id: targetCardId,
+        title: 'Task',
+        list: sourceListId,
+        board: validBoardId,
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Card, 'findById').mockResolvedValue(mockCardDoc);
+      jest.spyOn(List, 'findById').mockResolvedValue(null);
+
+      const res = await request(app)
+        .patch(`/api/cards/${targetCardId.toString()}/move`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          destinationListId: destinationListId.toString(),
+          position: 1000,
+        });
+
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Destination list not found');
+    });
+
+    it('should return HTTP 400 Bad Request when position is negative, string, or null', async () => {
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+
+      const res = await request(app)
+        .patch(`/api/cards/${targetCardId.toString()}/move`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({
+          destinationListId: destinationListId.toString(),
+          position: -5,
+        });
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('Validation Error');
+    });
+  });
+
   describe('List Deletion Cascading', () => {
     it('should delete child cards when a list is deleted', async () => {
       const mockListDoc = new List({

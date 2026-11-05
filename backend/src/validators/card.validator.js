@@ -96,6 +96,19 @@ const updateCardSchema = z
   );
 
 /**
+ * Card move request body validation schema
+ */
+const moveCardSchema = z.object({
+  destinationListId: z
+    .string({ required_error: 'Destination list ID is required' })
+    .trim()
+    .refine((val) => mongoose.isObjectIdOrHexString(val), {
+      message: 'Invalid destination list ID format',
+    }),
+  position: positionSchema,
+});
+
+/**
  * List ID route parameter validation schema (:listId)
  */
 const listIdParamSchema = z.object({
@@ -122,6 +135,7 @@ const cardIdParamSchema = z.object({
 module.exports = {
   createCardSchema,
   updateCardSchema,
+  moveCardSchema,
   listIdParamSchema,
   cardIdParamSchema,
 };

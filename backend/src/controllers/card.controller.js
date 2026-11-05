@@ -95,10 +95,32 @@ const deleteCard = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Move a card within the same list or to another list on the same board
+ * PATCH /api/cards/:id/move
+ */
+const moveCard = asyncHandler(async (req, res) => {
+  const result = await cardService.moveCard(
+    req.params.id,
+    req.body,
+    req.user._id
+  );
+
+  res.status(200).json({
+    success: true,
+    status: 'success',
+    message: 'Card moved successfully',
+    data: {
+      card: result,
+    },
+  });
+});
+
 module.exports = {
   createCard,
   getListCards,
   getCardById,
   updateCard,
   deleteCard,
+  moveCard,
 };

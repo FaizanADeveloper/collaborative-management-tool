@@ -206,10 +206,57 @@ const deleteCard = async (cardId, userId) => {
   return null;
 };
 
+/**
+ * Move a card within the same list or to another list on the same board, updating position
+ *
+ * @param {string|mongoose.Types.ObjectId} cardId - Card ID to move
+ * @param {object} data - { destinationListId, position }
+ * @param {string|mongoose.Types.ObjectId} userId - Requesting user's ID
+ * @returns {Promise<object>} Moved card document
+ */
+const moveCard = async (cardId, { destinationListId, position }, userId) => {
+  const card = await Card.findById(cardId);
+  if (!card) {
+    throw ApiError.notFound('Card not found');
+  }
+
+  const destinationList = await List.findById(destinationListId);
+  if (!destinationList) {
+    throw ApiError.notFound('Destination list not found');
+  }
+
+  // Cross-board isolation check: destination list must belong to the same board as the card
+  if (destinationList.board.toString() !== card.board.toString()) {
+    throw ApiError.badRequest('Destination list must belong to the same board');
+  }
+
+  const board = await Board.findById(card.board);
+  if (!board) {
+    throw ApiError.notFound('Board not found');
+  }
+
+  const membership = await WorkspaceMember.findOne({
+    workspace: board.workspace,
+    user: userId,
+  });
+  if (!membership) {
+    throw ApiError.forbidden('Access denied. You are not a member of this workspace.');
+  }
+
+  card.list = destinationListId;
+  card.position = position;
+
+  await card.save();
+  await card.populate('assignees', 'name email avatar');
+
+  return card.toJSON ? card.toJSON() : card;
+};
+
 module.exports = {
   createCard,
   getListCards,
   getCardById,
   updateCard,
   deleteCard,
+  moveCard,
 };

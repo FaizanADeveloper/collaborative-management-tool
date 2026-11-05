@@ -6,6 +6,7 @@ const validateParams = require('../middleware/validateParams.middleware');
 const {
   createCardSchema,
   updateCardSchema,
+  moveCardSchema,
   listIdParamSchema,
   cardIdParamSchema,
 } = require('../validators/card.validator');
@@ -28,6 +29,13 @@ router.get(
 );
 
 // Direct card routes
+router.patch(
+  '/cards/:id/move',
+  authenticate,
+  validateParams(cardIdParamSchema),
+  validate(moveCardSchema),
+  cardController.moveCard
+);
 router.get(
   '/cards/:id',
   authenticate,
