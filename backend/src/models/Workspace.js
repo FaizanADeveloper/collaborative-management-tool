@@ -21,6 +21,12 @@ const workspaceSchema = new mongoose.Schema(
       required: [true, 'Workspace owner is required'],
       index: true,
     },
+    inviteCode: {
+      type: String,
+      unique: true,
+      sparse: true,
+      trim: true,
+    },
   },
   {
     timestamps: true,

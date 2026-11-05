@@ -4,6 +4,8 @@ const app = require('../src/app');
 const User = require('../src/models/User');
 const Workspace = require('../src/models/Workspace');
 const WorkspaceMember = require('../src/models/WorkspaceMember');
+const Board = require('../src/models/Board');
+const List = require('../src/models/List');
 const { generateToken } = require('../src/utils/token');
 
 describe('Milestone 05A: Workspace Foundation', () => {
@@ -493,6 +495,506 @@ describe('Milestone 05A: Workspace Foundation', () => {
           expect.objectContaining({ field: 'id' }),
         ])
       );
+    });
+  });
+
+  describe('GET /api/workspaces/:id/members (Get Workspace Members)', () => {
+    const targetWorkspaceId = new mongoose.Types.ObjectId();
+
+    it('should return all workspace members for an authorized member', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Dev Workspace',
+        owner: mockUserId,
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'owner',
+      });
+
+      const mockMembersList = [
+        {
+          user: {
+            _id: mockUserId,
+            name: 'Alex Morgan',
+            email: 'alex.morgan@example.com',
+            avatar: 'https://example.com/avatar.png',
+          },
+          role: 'owner',
+          joinedAt: new Date(),
+        },
+      ];
+
+      const mockFindQuery = {
+        populate: jest.fn().mockReturnThis(),
+        sort: jest.fn().mockResolvedValue(mockMembersList),
+      };
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+      jest.spyOn(WorkspaceMember, 'find').mockReturnValue(mockFindQuery);
+
+      const res = await request(app)
+        .get(`/api/workspaces/${targetWorkspaceId.toString()}/members`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.members).toHaveLength(1);
+      expect(res.body.data.members[0]).toMatchObject({
+        id: mockUserId.toString(),
+        name: 'Alex Morgan',
+        role: 'owner',
+      });
+    });
+
+    it('should return HTTP 403 Forbidden when requesting user is NOT a member', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Private Workspace',
+        owner: new mongoose.Types.ObjectId(),
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(null);
+
+      const res = await request(app)
+        .get(`/api/workspaces/${targetWorkspaceId.toString()}/members`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toMatch(/not a member/);
+    });
+  });
+
+  describe('PUT /api/workspaces/:id (Update Workspace)', () => {
+    const targetWorkspaceId = new mongoose.Types.ObjectId();
+
+    it('should allow owner to update workspace details', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Original Name',
+        description: 'Original Description',
+        owner: mockUserId,
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'owner',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+      jest.spyOn(mockWorkspaceDoc, 'save').mockResolvedValue(mockWorkspaceDoc);
+
+      const res = await request(app)
+        .put(`/api/workspaces/${targetWorkspaceId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Updated Name', description: 'Updated Description' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.workspace.name).toBe('Updated Name');
+      expect(res.body.data.workspace.description).toBe('Updated Description');
+    });
+
+    it('should allow admin to update workspace details', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Original Name',
+        owner: new mongoose.Types.ObjectId(),
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'admin',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+      jest.spyOn(mockWorkspaceDoc, 'save').mockResolvedValue(mockWorkspaceDoc);
+
+      const res = await request(app)
+        .put(`/api/workspaces/${targetWorkspaceId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Admin Renamed' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.workspace.name).toBe('Admin Renamed');
+    });
+
+    it('should return HTTP 403 Forbidden when a regular member attempts to update workspace', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Original Name',
+        owner: new mongoose.Types.ObjectId(),
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'member',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+
+      const res = await request(app)
+        .put(`/api/workspaces/${targetWorkspaceId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Member Update Attempt' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toMatch(/Only workspace owners and admins/);
+    });
+
+    it('should return HTTP 400 Bad Request when update payload is empty', async () => {
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+
+      const res = await request(app)
+        .put(`/api/workspaces/${targetWorkspaceId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('Validation Error');
+    });
+  });
+
+  describe('DELETE /api/workspaces/:id (Delete Workspace & Cascading)', () => {
+    const targetWorkspaceId = new mongoose.Types.ObjectId();
+
+    it('should allow owner to delete workspace and cascade delete boards, lists, and memberships', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Doomed Workspace',
+        owner: mockUserId,
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'owner',
+      });
+
+      const mockBoardId = new mongoose.Types.ObjectId();
+      const mockBoards = [{ _id: mockBoardId }];
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+      jest.spyOn(Board, 'find').mockReturnValue({
+        select: jest.fn().mockResolvedValue(mockBoards),
+      });
+      jest.spyOn(List, 'deleteMany').mockResolvedValue({ deletedCount: 5 });
+      jest.spyOn(Board, 'deleteMany').mockResolvedValue({ deletedCount: 1 });
+      jest.spyOn(WorkspaceMember, 'deleteMany').mockResolvedValue({ deletedCount: 3 });
+      jest.spyOn(Workspace, 'findByIdAndDelete').mockResolvedValue(mockWorkspaceDoc);
+
+      const res = await request(app)
+        .delete(`/api/workspaces/${targetWorkspaceId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(List.deleteMany).toHaveBeenCalledWith({ board: { $in: [mockBoardId] } });
+      expect(Board.deleteMany).toHaveBeenCalledWith({ workspace: targetWorkspaceId.toString() });
+      expect(WorkspaceMember.deleteMany).toHaveBeenCalledWith({ workspace: targetWorkspaceId.toString() });
+      expect(Workspace.findByIdAndDelete).toHaveBeenCalledWith(targetWorkspaceId.toString());
+    });
+
+    it('should return HTTP 403 Forbidden when an admin attempts to delete workspace', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Workspace',
+        owner: new mongoose.Types.ObjectId(),
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'admin',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+
+      const res = await request(app)
+        .delete(`/api/workspaces/${targetWorkspaceId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toMatch(/Only the workspace owner/);
+    });
+  });
+
+  describe('POST /api/workspaces/:id/invite (Generate / Refresh Invitation Code)', () => {
+    const targetWorkspaceId = new mongoose.Types.ObjectId();
+
+    it('should allow owner or admin to generate/refresh invitation code', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Invite Workspace',
+        owner: mockUserId,
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'owner',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+      jest.spyOn(mockWorkspaceDoc, 'save').mockResolvedValue(mockWorkspaceDoc);
+
+      const res = await request(app)
+        .post(`/api/workspaces/${targetWorkspaceId.toString()}/invite`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data).toHaveProperty('inviteCode');
+      expect(typeof res.body.data.inviteCode).toBe('string');
+    });
+
+    it('should return HTTP 403 Forbidden when regular member attempts to generate invite code', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Workspace',
+        owner: new mongoose.Types.ObjectId(),
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'member',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+
+      const res = await request(app)
+        .post(`/api/workspaces/${targetWorkspaceId.toString()}/invite`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toMatch(/Only workspace owners and admins/);
+    });
+  });
+
+  describe('POST /api/workspaces/join/:inviteCode (Join Workspace via Invitation Code)', () => {
+    const validInviteCode = 'a1b2c3d4e5f6';
+    const targetWorkspaceId = new mongoose.Types.ObjectId();
+
+    it('should allow user to join workspace with valid invitation code', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Joined Workspace',
+        owner: new mongoose.Types.ObjectId(),
+        inviteCode: validInviteCode,
+      });
+
+      const mockNewMembership = new WorkspaceMember({
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'member',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findOne').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(null);
+      jest.spyOn(WorkspaceMember, 'create').mockResolvedValue(mockNewMembership);
+
+      const res = await request(app)
+        .post(`/api/workspaces/join/${validInviteCode}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.workspace).toHaveProperty('id', targetWorkspaceId.toString());
+      expect(res.body.data.workspace.role).toBe('member');
+    });
+
+    it('should return HTTP 409 Conflict when user is already a member', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Already Joined',
+        owner: new mongoose.Types.ObjectId(),
+        inviteCode: validInviteCode,
+      });
+
+      const existingMembership = new WorkspaceMember({
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'member',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findOne').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(existingMembership);
+
+      const res = await request(app)
+        .post(`/api/workspaces/join/${validInviteCode}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(409);
+      expect(res.body.message).toMatch(/already a member/);
+    });
+
+    it('should return HTTP 404 Not Found when invite code is invalid or not found', async () => {
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findOne').mockResolvedValue(null);
+
+      const res = await request(app)
+        .post('/api/workspaces/join/invalid-code')
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.message).toMatch(/Invalid or expired invitation code/);
+    });
+  });
+
+  describe('DELETE /api/workspaces/:id/members/:userId (Remove Member or Leave)', () => {
+    const targetWorkspaceId = new mongoose.Types.ObjectId();
+    const otherMemberId = new mongoose.Types.ObjectId();
+
+    it('should allow regular member to leave workspace voluntarily', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Leave Workspace',
+        owner: new mongoose.Types.ObjectId(),
+      });
+
+      const mockTargetMembership = new WorkspaceMember({
+        _id: new mongoose.Types.ObjectId(),
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'member',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockTargetMembership);
+      jest.spyOn(WorkspaceMember, 'findByIdAndDelete').mockResolvedValue(mockTargetMembership);
+
+      const res = await request(app)
+        .delete(`/api/workspaces/${targetWorkspaceId.toString()}/members/${mockUserId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(WorkspaceMember.findByIdAndDelete).toHaveBeenCalledWith(mockTargetMembership._id);
+    });
+
+    it('should reject owner attempting to leave without transferring ownership with HTTP 400', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Owner Leave',
+        owner: mockUserId,
+      });
+
+      const mockOwnerMembership = new WorkspaceMember({
+        _id: new mongoose.Types.ObjectId(),
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'owner',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockOwnerMembership);
+
+      const res = await request(app)
+        .delete(`/api/workspaces/${targetWorkspaceId.toString()}/members/${mockUserId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toMatch(/Workspace owner cannot leave/);
+    });
+
+    it('should allow owner to remove another member', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Kick Member',
+        owner: mockUserId,
+      });
+
+      const mockTargetMembership = new WorkspaceMember({
+        _id: new mongoose.Types.ObjectId(),
+        workspace: targetWorkspaceId,
+        user: otherMemberId,
+        role: 'member',
+      });
+
+      const mockOwnerMembership = new WorkspaceMember({
+        _id: new mongoose.Types.ObjectId(),
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'owner',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne')
+        .mockResolvedValueOnce(mockTargetMembership) // finding target member
+        .mockResolvedValueOnce(mockOwnerMembership); // finding requesting member
+      jest.spyOn(WorkspaceMember, 'findByIdAndDelete').mockResolvedValue(mockTargetMembership);
+
+      const res = await request(app)
+        .delete(`/api/workspaces/${targetWorkspaceId.toString()}/members/${otherMemberId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+    });
+
+    it('should reject admin attempting to remove workspace owner with HTTP 403', async () => {
+      const ownerUserId = new mongoose.Types.ObjectId();
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Admin Kick Owner',
+        owner: ownerUserId,
+      });
+
+      const mockTargetMembership = new WorkspaceMember({
+        _id: new mongoose.Types.ObjectId(),
+        workspace: targetWorkspaceId,
+        user: ownerUserId,
+        role: 'owner',
+      });
+
+      const mockAdminMembership = new WorkspaceMember({
+        _id: new mongoose.Types.ObjectId(),
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'admin',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne')
+        .mockResolvedValueOnce(mockTargetMembership)
+        .mockResolvedValueOnce(mockAdminMembership);
+
+      const res = await request(app)
+        .delete(`/api/workspaces/${targetWorkspaceId.toString()}/members/${ownerUserId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toMatch(/Cannot remove the workspace owner/);
     });
   });
 
