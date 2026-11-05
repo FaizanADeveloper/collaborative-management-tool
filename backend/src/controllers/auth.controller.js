@@ -31,7 +31,25 @@ const login = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Retrieve authenticated user profile
+ * GET /api/auth/me
+ */
+const getMe = asyncHandler(async (req, res) => {
+  const user = req.user.toJSON ? req.user.toJSON() : req.user;
+
+  res.status(200).json({
+    success: true,
+    status: 'success',
+    message: 'User profile retrieved successfully',
+    data: {
+      user,
+    },
+  });
+});
+
 module.exports = {
   register,
   login,
+  getMe,
 };
