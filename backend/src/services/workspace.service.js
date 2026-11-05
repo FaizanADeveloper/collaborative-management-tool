@@ -3,6 +3,7 @@ const Workspace = require('../models/Workspace');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const Board = require('../models/Board');
 const List = require('../models/List');
+const Card = require('../models/Card');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -191,8 +192,12 @@ const deleteWorkspace = async (workspaceId, userId) => {
   const boards = await Board.find({ workspace: workspaceId }).select('_id');
   const boardIds = boards.map((b) => b._id);
 
-  // Cascade delete lists in these boards
+  // Cascade delete child cards and lists in these boards
   if (boardIds.length > 0) {
+    // Delete cards before parent lists and boards
+    await Card.deleteMany({ board: { $in: boardIds } });
+
+    // Delete lists in these boards
     await List.deleteMany({ board: { $in: boardIds } });
   }
 

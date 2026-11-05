@@ -364,7 +364,7 @@ npm --prefix backend run dev
 - **Response:** `HTTP 200 OK` with `{ lists: [...] }`
 
 ### 6.3 Update List Name or Position
-- **Route:** `PATCH /api/lists/:id`
+- **Route:** `PATCH /api/lists/:id` or `PUT /api/lists/:id`
 - **Auth:** Bearer Token (workspace member)
 - **Request Body:**
   ```json

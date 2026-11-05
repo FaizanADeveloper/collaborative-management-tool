@@ -6,6 +6,7 @@ const Workspace = require('../src/models/Workspace');
 const WorkspaceMember = require('../src/models/WorkspaceMember');
 const Board = require('../src/models/Board');
 const List = require('../src/models/List');
+const Card = require('../src/models/Card');
 const { generateToken } = require('../src/utils/token');
 
 describe('Milestone 05A: Workspace Foundation', () => {
@@ -695,6 +696,7 @@ describe('Milestone 05A: Workspace Foundation', () => {
       jest.spyOn(Board, 'find').mockReturnValue({
         select: jest.fn().mockResolvedValue(mockBoards),
       });
+      jest.spyOn(Card, 'deleteMany').mockResolvedValue({ deletedCount: 12 });
       jest.spyOn(List, 'deleteMany').mockResolvedValue({ deletedCount: 5 });
       jest.spyOn(Board, 'deleteMany').mockResolvedValue({ deletedCount: 1 });
       jest.spyOn(WorkspaceMember, 'deleteMany').mockResolvedValue({ deletedCount: 3 });
@@ -706,7 +708,46 @@ describe('Milestone 05A: Workspace Foundation', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+      expect(Card.deleteMany).toHaveBeenCalledWith({ board: { $in: [mockBoardId] } });
       expect(List.deleteMany).toHaveBeenCalledWith({ board: { $in: [mockBoardId] } });
+      expect(Board.deleteMany).toHaveBeenCalledWith({ workspace: targetWorkspaceId.toString() });
+      expect(WorkspaceMember.deleteMany).toHaveBeenCalledWith({ workspace: targetWorkspaceId.toString() });
+      expect(Workspace.findByIdAndDelete).toHaveBeenCalledWith(targetWorkspaceId.toString());
+    });
+
+    it('should safely delete workspace without error when workspace has no boards', async () => {
+      const mockWorkspaceDoc = new Workspace({
+        _id: targetWorkspaceId,
+        name: 'Empty Workspace',
+        owner: mockUserId,
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: targetWorkspaceId,
+        user: mockUserId,
+        role: 'owner',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Workspace, 'findById').mockResolvedValue(mockWorkspaceDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+      jest.spyOn(Board, 'find').mockReturnValue({
+        select: jest.fn().mockResolvedValue([]),
+      });
+      jest.spyOn(Card, 'deleteMany').mockResolvedValue({ deletedCount: 0 });
+      jest.spyOn(List, 'deleteMany').mockResolvedValue({ deletedCount: 0 });
+      jest.spyOn(Board, 'deleteMany').mockResolvedValue({ deletedCount: 0 });
+      jest.spyOn(WorkspaceMember, 'deleteMany').mockResolvedValue({ deletedCount: 1 });
+      jest.spyOn(Workspace, 'findByIdAndDelete').mockResolvedValue(mockWorkspaceDoc);
+
+      const res = await request(app)
+        .delete(`/api/workspaces/${targetWorkspaceId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(Card.deleteMany).not.toHaveBeenCalled();
+      expect(List.deleteMany).not.toHaveBeenCalled();
       expect(Board.deleteMany).toHaveBeenCalledWith({ workspace: targetWorkspaceId.toString() });
       expect(WorkspaceMember.deleteMany).toHaveBeenCalledWith({ workspace: targetWorkspaceId.toString() });
       expect(Workspace.findByIdAndDelete).toHaveBeenCalledWith(targetWorkspaceId.toString());

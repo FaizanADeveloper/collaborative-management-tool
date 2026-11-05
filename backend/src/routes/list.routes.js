@@ -35,6 +35,13 @@ router.patch(
   validate(updateListSchema),
   listController.updateList
 );
+router.put(
+  '/lists/:id',
+  authenticate,
+  validateParams(listIdParamSchema),
+  validate(updateListSchema),
+  listController.updateList
+);
 router.delete(
   '/lists/:id',
   authenticate,

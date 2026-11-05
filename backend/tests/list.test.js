@@ -466,10 +466,10 @@ describe('Milestone 05C: List Management', () => {
     });
   });
 
-  describe('PATCH /api/lists/:id (Update List Name and/or Position)', () => {
+  describe('PATCH /api/lists/:id & PUT /api/lists/:id (Update List Name and/or Position)', () => {
     const targetListId = new mongoose.Types.ObjectId();
 
-    it('should successfully update list name', async () => {
+    it('should successfully update list name using PATCH', async () => {
       const mockListDoc = new List({
         _id: targetListId,
         name: 'Old Name',
@@ -540,6 +540,45 @@ describe('Milestone 05C: List Management', () => {
       expect(res.status).toBe(200);
       expect(res.body.data.list).toHaveProperty('position', 2500);
       expect(mockListDoc.position).toBe(2500);
+      expect(mockListDoc.save).toHaveBeenCalled();
+    });
+
+    it('should successfully update list name and position using PUT /api/lists/:id alias', async () => {
+      const mockListDoc = new List({
+        _id: targetListId,
+        name: 'Initial Name',
+        board: validBoardId,
+        position: 1000,
+      });
+
+      const mockBoardDoc = new Board({
+        _id: validBoardId,
+        workspace: validWorkspaceId,
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: validWorkspaceId,
+        user: mockUserId,
+        role: 'member',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(List, 'findById').mockResolvedValue(mockListDoc);
+      jest.spyOn(Board, 'findById').mockResolvedValue(mockBoardDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+      jest.spyOn(mockListDoc, 'save').mockResolvedValue(mockListDoc);
+
+      const res = await request(app)
+        .put(`/api/lists/${targetListId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'PUT Updated Name', position: 3500 });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.list).toHaveProperty('name', 'PUT Updated Name');
+      expect(res.body.data.list).toHaveProperty('position', 3500);
+      expect(mockListDoc.name).toBe('PUT Updated Name');
+      expect(mockListDoc.position).toBe(3500);
       expect(mockListDoc.save).toHaveBeenCalled();
     });
 
