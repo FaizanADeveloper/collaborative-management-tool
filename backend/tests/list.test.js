@@ -6,6 +6,7 @@ const Workspace = require('../src/models/Workspace');
 const WorkspaceMember = require('../src/models/WorkspaceMember');
 const Board = require('../src/models/Board');
 const List = require('../src/models/List');
+const Card = require('../src/models/Card');
 const { generateToken } = require('../src/utils/token');
 
 describe('Milestone 05C: List Management', () => {
@@ -620,6 +621,7 @@ describe('Milestone 05C: List Management', () => {
       jest.spyOn(List, 'findById').mockResolvedValue(mockListDoc);
       jest.spyOn(Board, 'findById').mockResolvedValue(mockBoardDoc);
       jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+      jest.spyOn(Card, 'deleteMany').mockResolvedValue({ deletedCount: 0 });
       jest.spyOn(List, 'findByIdAndDelete').mockResolvedValue(mockListDoc);
 
       const res = await request(app)

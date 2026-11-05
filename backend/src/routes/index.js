@@ -4,6 +4,7 @@ const authRoutes = require('./auth.routes');
 const workspaceRoutes = require('./workspace.routes');
 const boardRoutes = require('./board.routes');
 const listRoutes = require('./list.routes');
+const cardRoutes = require('./card.routes');
 
 const router = express.Router();
 
@@ -13,5 +14,6 @@ router.use('/auth', authRoutes);
 router.use('/workspaces', workspaceRoutes);
 router.use('/', boardRoutes);
 router.use('/', listRoutes);
+router.use('/', cardRoutes);
 
 module.exports = router;

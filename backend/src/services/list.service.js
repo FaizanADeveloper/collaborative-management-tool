@@ -1,5 +1,6 @@
 const List = require('../models/List');
 const Board = require('../models/Board');
+const Card = require('../models/Card');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const ApiError = require('../utils/ApiError');
 
@@ -140,6 +141,9 @@ const deleteList = async (listId, userId) => {
   if (!membership) {
     throw ApiError.forbidden('Access denied. You are not a member of this workspace.');
   }
+
+  // Cascade delete child cards
+  await Card.deleteMany({ list: listId });
 
   await List.findByIdAndDelete(listId);
 
