@@ -1,6 +1,7 @@
 const Board = require('../models/Board');
 const Workspace = require('../models/Workspace');
 const WorkspaceMember = require('../models/WorkspaceMember');
+const List = require('../models/List');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -91,8 +92,94 @@ const getBoardById = async (boardId, userId) => {
   return board.toJSON ? board.toJSON() : board;
 };
 
+/**
+ * Update board details (owner, admin, or board creator only)
+ *
+ * @param {string|mongoose.Types.ObjectId} boardId - Board ID
+ * @param {object} data - { name?, description? }
+ * @param {string|mongoose.Types.ObjectId} userId - Requesting user's ID
+ * @returns {Promise<object>} Updated board details
+ */
+const updateBoard = async (boardId, data, userId) => {
+  const board = await Board.findById(boardId);
+  if (!board) {
+    throw ApiError.notFound('Board not found');
+  }
+
+  const membership = await WorkspaceMember.findOne({
+    workspace: board.workspace,
+    user: userId,
+  });
+  if (!membership) {
+    throw ApiError.forbidden('Access denied. You are not a member of this workspace.');
+  }
+
+  const isCreator = board.createdBy.toString() === userId.toString();
+  const isPrivileged = membership.role === 'owner' || membership.role === 'admin';
+
+  if (!isCreator && !isPrivileged) {
+    throw ApiError.forbidden('Access denied. Only workspace owners, admins, or the board creator can update this board.');
+  }
+
+  if (data.name !== undefined) {
+    board.name = data.name;
+  }
+  if (data.description !== undefined) {
+    board.description = data.description;
+  }
+
+  await board.save();
+
+  return board.toJSON ? board.toJSON() : board;
+};
+
+/**
+ * Delete a board and cascade delete its lists and cards
+ * (owner, admin, or board creator only)
+ *
+ * @param {string|mongoose.Types.ObjectId} boardId - Board ID
+ * @param {string|mongoose.Types.ObjectId} userId - Requesting user's ID
+ * @returns {Promise<null>}
+ */
+const deleteBoard = async (boardId, userId) => {
+  const board = await Board.findById(boardId);
+  if (!board) {
+    throw ApiError.notFound('Board not found');
+  }
+
+  const membership = await WorkspaceMember.findOne({
+    workspace: board.workspace,
+    user: userId,
+  });
+  if (!membership) {
+    throw ApiError.forbidden('Access denied. You are not a member of this workspace.');
+  }
+
+  const isCreator = board.createdBy.toString() === userId.toString();
+  const isPrivileged = membership.role === 'owner' || membership.role === 'admin';
+
+  if (!isCreator && !isPrivileged) {
+    throw ApiError.forbidden('Access denied. Only workspace owners, admins, or the board creator can delete this board.');
+  }
+
+  // Cascade delete child lists
+  await List.deleteMany({ board: boardId });
+
+  // Cascade delete child cards if Card model is registered
+  if (Board.db && Board.db.models && Board.db.models.Card) {
+    await Board.db.models.Card.deleteMany({ board: boardId });
+  }
+
+  // Delete the board
+  await Board.findByIdAndDelete(boardId);
+
+  return null;
+};
+
 module.exports = {
   createBoard,
   getWorkspaceBoards,
   getBoardById,
+  updateBoard,
+  deleteBoard,
 };

@@ -5,6 +5,7 @@ const User = require('../src/models/User');
 const Workspace = require('../src/models/Workspace');
 const WorkspaceMember = require('../src/models/WorkspaceMember');
 const Board = require('../src/models/Board');
+const List = require('../src/models/List');
 const { generateToken } = require('../src/utils/token');
 
 describe('Milestone 05B: Board Foundation', () => {
@@ -508,6 +509,183 @@ describe('Milestone 05B: Board Foundation', () => {
       expect(res.body.errors).toEqual(
         expect.arrayContaining([expect.objectContaining({ field: 'id' })])
       );
+    });
+  });
+
+  describe('PUT /api/boards/:id (Update Board)', () => {
+    const targetBoardId = new mongoose.Types.ObjectId();
+
+    it('should allow board creator to update board details', async () => {
+      const mockBoardDoc = new Board({
+        _id: targetBoardId,
+        name: 'Original Board',
+        description: 'Original Desc',
+        workspace: validWorkspaceId,
+        createdBy: mockUserId,
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: validWorkspaceId,
+        user: mockUserId,
+        role: 'member',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Board, 'findById').mockResolvedValue(mockBoardDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+      jest.spyOn(mockBoardDoc, 'save').mockResolvedValue(mockBoardDoc);
+
+      const res = await request(app)
+        .put(`/api/boards/${targetBoardId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Updated Board', description: 'Updated Desc' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(res.body.data.board.name).toBe('Updated Board');
+      expect(res.body.data.board.description).toBe('Updated Desc');
+    });
+
+    it('should allow workspace admin to update board details even if not creator', async () => {
+      const otherUserId = new mongoose.Types.ObjectId();
+      const mockBoardDoc = new Board({
+        _id: targetBoardId,
+        name: 'Original Board',
+        workspace: validWorkspaceId,
+        createdBy: otherUserId,
+      });
+
+      const mockAdminMembership = new WorkspaceMember({
+        workspace: validWorkspaceId,
+        user: mockUserId,
+        role: 'admin',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Board, 'findById').mockResolvedValue(mockBoardDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockAdminMembership);
+      jest.spyOn(mockBoardDoc, 'save').mockResolvedValue(mockBoardDoc);
+
+      const res = await request(app)
+        .put(`/api/boards/${targetBoardId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Admin Renamed Board' });
+
+      expect(res.status).toBe(200);
+      expect(res.body.data.board.name).toBe('Admin Renamed Board');
+    });
+
+    it('should return HTTP 403 Forbidden when a non-creator regular member attempts to update board', async () => {
+      const otherUserId = new mongoose.Types.ObjectId();
+      const mockBoardDoc = new Board({
+        _id: targetBoardId,
+        name: 'Original Board',
+        workspace: validWorkspaceId,
+        createdBy: otherUserId,
+      });
+
+      const mockMemberMembership = new WorkspaceMember({
+        workspace: validWorkspaceId,
+        user: mockUserId,
+        role: 'member',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Board, 'findById').mockResolvedValue(mockBoardDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMemberMembership);
+
+      const res = await request(app)
+        .put(`/api/boards/${targetBoardId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({ name: 'Unauthorized Renamed' });
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toMatch(/Only workspace owners, admins, or the board creator/);
+    });
+
+    it('should return HTTP 400 Bad Request when update payload is empty', async () => {
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+
+      const res = await request(app)
+        .put(`/api/boards/${targetBoardId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`)
+        .send({});
+
+      expect(res.status).toBe(400);
+      expect(res.body.message).toBe('Validation Error');
+    });
+  });
+
+  describe('DELETE /api/boards/:id (Delete Board & Cascading)', () => {
+    const targetBoardId = new mongoose.Types.ObjectId();
+
+    it('should allow board creator to delete board and cascade delete child lists', async () => {
+      const mockBoardDoc = new Board({
+        _id: targetBoardId,
+        name: 'Board to Delete',
+        workspace: validWorkspaceId,
+        createdBy: mockUserId,
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: validWorkspaceId,
+        user: mockUserId,
+        role: 'member',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Board, 'findById').mockResolvedValue(mockBoardDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+      jest.spyOn(List, 'deleteMany').mockResolvedValue({ deletedCount: 3 });
+      jest.spyOn(Board, 'findByIdAndDelete').mockResolvedValue(mockBoardDoc);
+
+      const res = await request(app)
+        .delete(`/api/boards/${targetBoardId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(200);
+      expect(res.body.success).toBe(true);
+      expect(List.deleteMany).toHaveBeenCalledWith({ board: targetBoardId.toString() });
+      expect(Board.findByIdAndDelete).toHaveBeenCalledWith(targetBoardId.toString());
+    });
+
+    it('should return HTTP 403 Forbidden when a non-creator regular member attempts to delete board', async () => {
+      const otherUserId = new mongoose.Types.ObjectId();
+      const mockBoardDoc = new Board({
+        _id: targetBoardId,
+        name: 'Board to Delete',
+        workspace: validWorkspaceId,
+        createdBy: otherUserId,
+      });
+
+      const mockMembershipDoc = new WorkspaceMember({
+        workspace: validWorkspaceId,
+        user: mockUserId,
+        role: 'member',
+      });
+
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Board, 'findById').mockResolvedValue(mockBoardDoc);
+      jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+
+      const res = await request(app)
+        .delete(`/api/boards/${targetBoardId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(403);
+      expect(res.body.message).toMatch(/Only workspace owners, admins, or the board creator/);
+    });
+
+    it('should return HTTP 404 Not Found when board does not exist', async () => {
+      jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
+      jest.spyOn(Board, 'findById').mockResolvedValue(null);
+
+      const res = await request(app)
+        .delete(`/api/boards/${targetBoardId.toString()}`)
+        .set('Authorization', `Bearer ${authToken}`);
+
+      expect(res.status).toBe(404);
+      expect(res.body.message).toBe('Board not found');
     });
   });
 

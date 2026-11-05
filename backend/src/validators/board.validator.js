@@ -19,6 +19,30 @@ const createBoardSchema = z.object({
 });
 
 /**
+ * Board update request body validation schema
+ */
+const updateBoardSchema = z
+  .object({
+    name: z
+      .string()
+      .trim()
+      .min(2, 'Board name must be at least 2 characters')
+      .max(100, 'Board name cannot exceed 100 characters')
+      .optional(),
+    description: z
+      .string()
+      .trim()
+      .max(500, 'Board description cannot exceed 500 characters')
+      .optional(),
+  })
+  .refine(
+    (data) => data.name !== undefined || data.description !== undefined,
+    {
+      message: 'At least one field (name or description) must be provided for update',
+    }
+  );
+
+/**
  * Workspace ID route parameter validation schema (:workspaceId)
  */
 const workspaceIdParamSchema = z.object({
@@ -44,6 +68,7 @@ const boardIdParamSchema = z.object({
 
 module.exports = {
   createBoardSchema,
+  updateBoardSchema,
   workspaceIdParamSchema,
   boardIdParamSchema,
 };

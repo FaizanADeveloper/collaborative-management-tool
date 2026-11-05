@@ -5,6 +5,7 @@ const validate = require('../middleware/validate.middleware');
 const validateParams = require('../middleware/validateParams.middleware');
 const {
   createBoardSchema,
+  updateBoardSchema,
   workspaceIdParamSchema,
   boardIdParamSchema,
 } = require('../validators/board.validator');
@@ -32,6 +33,19 @@ router.get(
   authenticate,
   validateParams(boardIdParamSchema),
   boardController.getBoardById
+);
+router.put(
+  '/boards/:id',
+  authenticate,
+  validateParams(boardIdParamSchema),
+  validate(updateBoardSchema),
+  boardController.updateBoard
+);
+router.delete(
+  '/boards/:id',
+  authenticate,
+  validateParams(boardIdParamSchema),
+  boardController.deleteBoard
 );
 
 module.exports = router;

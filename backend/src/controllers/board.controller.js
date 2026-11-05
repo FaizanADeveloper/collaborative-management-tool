@@ -59,8 +59,46 @@ const getBoardById = asyncHandler(async (req, res) => {
   });
 });
 
+/**
+ * Update board details
+ * PUT /api/boards/:id
+ */
+const updateBoard = asyncHandler(async (req, res) => {
+  const result = await boardService.updateBoard(
+    req.params.id,
+    req.body,
+    req.user._id
+  );
+
+  res.status(200).json({
+    success: true,
+    status: 'success',
+    message: 'Board updated successfully',
+    data: {
+      board: result,
+    },
+  });
+});
+
+/**
+ * Delete board
+ * DELETE /api/boards/:id
+ */
+const deleteBoard = asyncHandler(async (req, res) => {
+  await boardService.deleteBoard(req.params.id, req.user._id);
+
+  res.status(200).json({
+    success: true,
+    status: 'success',
+    message: 'Board deleted successfully',
+    data: null,
+  });
+});
+
 module.exports = {
   createBoard,
   getWorkspaceBoards,
   getBoardById,
+  updateBoard,
+  deleteBoard,
 };
