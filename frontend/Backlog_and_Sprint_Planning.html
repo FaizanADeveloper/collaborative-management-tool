@@ -1,0 +1,657 @@
+<!DOCTYPE html>
+
+<html class="dark" lang="en"><head><meta charset="utf-8"/><meta content="width=device-width, initial-scale=1.0" name="viewport"/><meta content="web_dashboard" name="shell-type"/><link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:opsz,wght,FILL,GRAD@20..48,100..700,0..1,-50..200" rel="stylesheet"/><link href="https://fonts.googleapis.com" rel="preconnect"/><link crossorigin="" href="https://fonts.gstatic.com" rel="preconnect"/><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&amp;family=JetBrains+Mono:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/><style>@layer base{html,body{margin:0;padding:0;}body{overscroll-behavior:none;}main>:first-child{margin-top:0!important;}main>:last-child{margin-bottom:0!important;}}::-webkit-scrollbar{display:none;}</style><script src="https://cdn.tailwindcss.com"></script><script id="tailwind-config">tailwind.config={darkMode:"class",theme:{extend:{colors:{"on-primary":"#1000a9","surface":"#0f131d","surface-dim":"#0f131d","error-container":"#93000a","on-secondary-fixed-variant":"#005236","surface-container-low":"#171b26","primary-container":"#8083ff","primary":"#c0c1ff","on-surface-variant":"#c7c4d7","surface-container-high":"#262a35","on-tertiary-fixed-variant":"#5516be","tertiary-fixed-dim":"#d0bcff","surface-tint":"#c0c1ff","secondary-container":"#00a572","surface-variant":"#313540","background":"#0f131d","on-tertiary":"#3c0091","surface-bright":"#353944","outline":"#908fa0","on-error-container":"#ffdad6","inverse-primary":"#494bd6","surface-container":"#1c1f2a","secondary-fixed-dim":"#4edea3","outline-variant":"#464554","on-surface":"#dfe2f1","secondary":"#4edea3","surface-container-highest":"#313540","on-primary-fixed-variant":"#2f2ebe","on-secondary-fixed":"#002113","on-tertiary-fixed":"#23005c","on-primary-container":"#0d0096","tertiary":"#d0bcff","tertiary-fixed":"#e9ddff","on-error":"#690005","on-secondary":"#003824","primary-fixed-dim":"#c0c1ff","on-background":"#dfe2f1","on-tertiary-container":"#340080","error":"#ffb4ab","on-primary-fixed":"#07006c","surface-container-lowest":"#0a0e18","on-secondary-container":"#00311f","inverse-on-surface":"#2c303b","primary-fixed":"#e1e0ff","tertiary-container":"#a078ff","inverse-surface":"#dfe2f1","secondary-fixed":"#6ffbbe"},borderRadius:{"DEFAULT":"0.125rem","lg":"0.25rem","xl":"0.5rem","full":"0.75rem"},spacing:{"space-xl":"1rem","space-md":"0.5rem","space-sm":"0.375rem","gutter":"0.75rem","space-xs":"0.25rem","space-lg":"0.75rem","margin":"1rem"},fontFamily:{"label-code-md":["JetBrains Mono"],"headline-lg":["Inter"],"badge-status":["Inter"],"label-code-sm":["JetBrains Mono"],"body-lg":["Inter"],"body-md":["Inter"],"headline-sm":["Inter"],"headline-xl":["Inter"],"body-sm":["Inter"],"headline-md":["Inter"]},fontSize:{"label-code-md":["12px",{lineHeight:"16px",letterSpacing:"-0.01em",fontWeight:"500"}],"headline-lg":["22px",{lineHeight:"28px",letterSpacing:"-0.015em",fontWeight:"600"}],"badge-status":["11px",{lineHeight:"14px",letterSpacing:"0.02em",fontWeight:"600"}],"label-code-sm":["11px",{lineHeight:"14px",letterSpacing:"0em",fontWeight:"500"}],"body-lg":["15px",{lineHeight:"22px",letterSpacing:"0em",fontWeight:"400"}],"body-md":["13px",{lineHeight:"18px",letterSpacing:"0em",fontWeight:"400"}],"headline-sm":["15px",{lineHeight:"20px",letterSpacing:"-0.005em",fontWeight:"600"}],"headline-xl":["28px",{lineHeight:"36px",letterSpacing:"-0.02em",fontWeight:"600"}],"body-sm":["12px",{lineHeight:"16px",letterSpacing:"0em",fontWeight:"400"}],"headline-md":["18px",{lineHeight:"24px",letterSpacing:"-0.01em",fontWeight:"600"}]}}}};</script></head><body class="bg-surface font-body-md text-body-md text-on-surface antialiased"><aside class="fixed left-0 top-0 h-full w-64 bg-surface-container-low border-r border-outline-variant/30 z-50 flex flex-col justify-between select-none"><div class="flex flex-col"><div class="h-14 px-4 flex items-center gap-space-sm border-b border-outline-variant/20"><div class="flex items-center justify-center w-7 h-7 rounded-lg bg-surface-container-high text-primary font-headline-sm text-headline-sm"><span class="material-symbols-outlined text-[18px]">view_kanban</span></div><div class="flex flex-col min-w-0 flex-1"><span class="font-headline-sm text-body-sm text-on-surface truncate font-semibold leading-tight">PulseSync Core</span><span class="font-label-code-sm text-label-code-sm text-outline truncate">v2.4-agile</span></div><button class="text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high rounded p-1 transition-colors" type="button"><span class="material-symbols-outlined text-[18px]">unfold_more</span></button></div><div class="px-3 pt-4 pb-2"><span class="font-label-code-sm text-label-code-sm text-outline uppercase tracking-wider px-2">Workspace Views</span></div><nav class="flex flex-col px-2 gap-0.5" data-active-classes="bg-surface-container-high text-primary font-semibold border-l-2 border-primary"><a class="flex items-center justify-between px-2.5 py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="active-board" href="#"><div class="flex items-center gap-2.5"><span class="material-symbols-outlined text-[18px]">dashboard</span><span class="font-body-md text-body-md">Active Board</span></div><span class="font-label-code-sm text-label-code-sm text-outline px-1 rounded bg-surface-container-lowest">B</span></a><a class="flex items-center justify-between px-2.5 py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="task-detail" href="#"><div class="flex items-center gap-2.5"><span class="material-symbols-outlined text-[18px]">check_circle</span><span class="font-body-md text-body-md">Task Detail</span></div><span class="font-label-code-sm text-label-code-sm text-outline px-1 rounded bg-surface-container-lowest">T</span></a><a aria-current="page" class="flex items-center justify-between px-2.5 py-1.5 rounded transition-colors bg-surface-container-high text-primary font-semibold border-l-2 border-primary" data-path="backlog-planning" href="#"><div class="flex items-center gap-2.5"><span class="material-symbols-outlined text-[18px]">layers</span><span class="font-body-md text-body-md">Backlog Planning</span></div><span class="font-label-code-sm text-label-code-sm text-outline px-1 rounded bg-surface-container-lowest">P</span></a><a class="flex items-center justify-between px-2.5 py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" data-path="sprint-analytics-presence" href="#"><div class="flex items-center gap-2.5"><span class="material-symbols-outlined text-[18px]">query_stats</span><span class="font-body-md text-body-md">Sprint Analytics &amp; Presence</span></div><span class="font-label-code-sm text-label-code-sm text-outline px-1 rounded bg-surface-container-lowest">S</span></a></nav><div class="px-3 pt-6 pb-2"><span class="font-label-code-sm text-label-code-sm text-outline uppercase tracking-wider px-2">Quick Filters</span></div><div class="flex flex-col px-2 gap-0.5"><a class="flex items-center justify-between px-2.5 py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" href="#"><div class="flex items-center gap-2.5"><span class="material-symbols-outlined text-[18px] text-tertiary">person</span><span class="font-body-md text-body-md">My Issues</span></div><span class="font-label-code-sm text-label-code-sm text-outline">12</span></a><a class="flex items-center justify-between px-2.5 py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" href="#"><div class="flex items-center gap-2.5"><span class="material-symbols-outlined text-[18px] text-error">emergency_home</span><span class="font-body-md text-body-md">Blockers</span></div><span class="font-label-code-sm text-label-code-sm text-error bg-error-container/30 px-1 rounded font-semibold">2</span></a><a class="flex items-center justify-between px-2.5 py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" href="#"><div class="flex items-center gap-2.5"><span class="material-symbols-outlined text-[18px] text-primary">category</span><span class="font-body-md text-body-md">Epics</span></div><span class="font-label-code-sm text-label-code-sm text-outline">5</span></a></div></div><div class="p-3 border-t border-outline-variant/20 flex flex-col gap-1"><a class="flex items-center gap-2.5 px-2.5 py-1.5 rounded text-on-surface-variant hover:bg-surface-container hover:text-on-surface transition-colors" href="#"><span class="material-symbols-outlined text-[18px]">settings</span><span class="font-body-md text-body-md">Workspace Settings</span></a><div class="flex items-center justify-between px-2.5 pt-2 text-outline font-label-code-sm text-label-code-sm"><span>LATENCY</span><span class="text-secondary">14ms OK</span></div></div></aside><div class="pl-64"><header class="fixed top-0 left-64 right-0 h-14 bg-surface/90 backdrop-blur-md border-b border-outline-variant/25 z-40 px-4 flex items-center justify-between select-none"><div class="flex items-center gap-space-md"><img alt="Pulse Agile Logo" class="h-8 w-auto object-contain" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDqMZzQPjlfvyD8-L89lp7_axjs2NcUkqCzU8uGQLYV7a8AZsN7mhDECH77ofbQJdXwE6r9hAdiC51cqwDhbLRHF65RsxKTCvQGJY4iu8Q81pFSiekCScSiTBrbIJW4gpAiFX2VZy4s49t2j3q5D55Zst3gvmVjhBdSe5RKGr2t5Rq339uNx-tZqQEL_h8hXx-yjQVQoMqrmM42CGuJBV-icnLlbCsRVeBlVLO50Hj9"/><div class="flex items-center gap-1.5 text-on-surface-variant hover:text-on-surface cursor-pointer rounded px-2 py-1 hover:bg-surface-container-high transition-colors"><span class="font-headline-sm text-headline-sm text-on-surface font-semibold">PulseSync</span><span class="text-outline text-body-sm">/</span><span class="font-body-md text-body-md text-on-surface font-medium">Acme Core Engineering</span><span class="text-outline text-body-sm">/</span><span class="font-label-code-sm text-label-code-sm px-1.5 py-0.5 rounded bg-surface-container-high text-primary font-medium">Sprint 24</span><span class="material-symbols-outlined text-[16px] text-outline ml-0.5">expand_more</span></div></div><div class="flex items-center gap-3"><button class="flex items-center gap-3 px-3 py-1.5 rounded-lg bg-surface-container-low border border-outline-variant/40 hover:border-outline text-on-surface-variant hover:text-on-surface transition-all" type="button"><div class="flex items-center gap-1.5"><span class="material-symbols-outlined text-[16px]">search</span><span class="font-body-sm text-body-sm">Search workspace...</span></div><kbd class="font-label-code-sm text-label-code-sm bg-surface-container-high px-1.5 py-0.5 rounded text-outline border border-outline-variant/40">⌘K</kbd></button><div class="flex items-center gap-1.5 px-2.5 py-1 rounded-full bg-secondary-container/20 border border-secondary/30"><span class="w-2 h-2 rounded-full bg-secondary animate-pulse"></span><span class="font-label-code-sm text-label-code-sm text-secondary font-medium">Socket.io Connected • 14ms</span></div><div class="flex items-center -space-x-2"><div class="relative"><div class="w-7 h-7 rounded-full bg-surface-container-high border-2 border-surface flex items-center justify-center font-label-code-sm text-label-code-sm text-primary font-semibold">AK</div><span class="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-secondary ring-1 ring-surface"></span></div><div class="relative"><div class="w-7 h-7 rounded-full bg-surface-container-highest border-2 border-surface flex items-center justify-center font-label-code-sm text-label-code-sm text-tertiary font-semibold">ML</div><span class="absolute bottom-0 right-0 w-2 h-2 rounded-full bg-secondary ring-1 ring-surface"></span></div><div class="relative"><div class="w-7 h-7 rounded-full bg-surface-container-high border-2 border-surface flex items-center justify-center font-label-code-sm text-label-code-sm text-on-surface-variant font-semibold">+4</div></div></div><button class="relative p-1.5 rounded-lg text-on-surface-variant hover:text-on-surface hover:bg-surface-container-high transition-colors" type="button"><span class="material-symbols-outlined text-[20px]">notifications</span><span class="absolute top-1 right-1 w-2 h-2 rounded-full bg-primary"></span></button><div class="pl-1 border-l border-outline-variant/30 flex items-center gap-2"><img alt="Profile" class="w-8 h-8 rounded-full object-cover ring-1 ring-primary/40" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCAcmV_wYZiC4Fu-vKcZ51BSPPaoppDs1L1PJ2DAGFMp_5p5t-0gGCt-O7ps_InBt5NRPgAZKA7JfDBJVRBm4vAH6Ov6hsehwJFAB8J6BfT1swLoGzycymK3PMMk176jTQf-_K4cm5TC1X4pRm_-FhaHJ1DFIn-i2tO3bOvqAqvW4zlYs_UWdQPp13bnzEdQOhWP34zDL5XqqIoA-Lk7BKEQ2rN215wSxmjqyiSI2JQ"/><span class="font-body-sm text-body-sm text-on-surface hidden xl:inline font-medium">Alex K.</span></div></div></header><main class="relative pt-14 w-full bg-surface min-h-screen"><div class="flex flex-col w-full">
+<div class="px-6 py-5 flex flex-col gap-6 w-full">
+<!-- Top Action & View Control Bar -->
+<div class="flex flex-col lg:flex-row items-start lg:items-center justify-between gap-4">
+<div class="flex flex-col gap-1">
+<div class="flex items-center gap-2">
+<span class="font-headline-lg text-headline-lg text-on-surface font-semibold tracking-tight">Backlog &amp; Sprint Capacity Planning</span>
+<span class="font-label-code-sm text-label-code-sm px-2 py-0.5 rounded-full bg-secondary/15 text-secondary font-medium">Sprint 25 Draft</span>
+</div>
+<p class="font-body-sm text-body-sm text-outline">Manage engineering velocity allocations, grooming sessions, and cross-epic work items.</p>
+</div>
+<!-- Action Buttons -->
+<div class="flex items-center flex-wrap gap-2.5">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-variant text-on-surface text-body-sm font-medium transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px] text-tertiary">style</span>
+<span>Estimate Session (Planning Poker)</span>
+<kbd class="font-label-code-sm text-[10px] bg-surface-container-lowest px-1.5 py-0.5 rounded text-outline ml-1">P</kbd>
+</button>
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-lg bg-surface-container-high hover:bg-surface-variant text-on-surface text-body-sm font-medium transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[18px] text-primary">add_chart</span>
+<span>Plan New Sprint</span>
+</button>
+<button class="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg bg-primary-container hover:opacity-90 text-on-primary-container font-headline-sm text-headline-sm font-semibold transition-all shadow-md" type="button">
+<span class="material-symbols-outlined text-[18px]">add</span>
+<span>Create Issue</span>
+<kbd class="font-label-code-sm text-[10px] bg-surface-container-lowest/30 px-1 py-0.5 rounded ml-1 text-on-primary-container">C</kbd>
+</button>
+</div>
+</div>
+<!-- Navigation Views & Multi-Filter Rail -->
+<div class="flex flex-col md:flex-row items-stretch md:items-center justify-between gap-3 bg-surface-container-low p-2 rounded-xl">
+<div class="flex items-center gap-1 bg-surface-container-lowest p-1 rounded-lg">
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-md bg-surface-container text-primary font-headline-sm text-headline-sm font-medium transition-all shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px]">view_agenda</span>
+<span>List View</span>
+</button>
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container/60 font-body-md text-body-md transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">grid_view</span>
+<span>Sprint Matrix</span>
+</button>
+<button class="flex items-center gap-2 px-3 py-1.5 rounded-md text-on-surface-variant hover:text-on-surface hover:bg-surface-container/60 font-body-md text-body-md transition-colors" type="button">
+<span class="material-symbols-outlined text-[16px]">timeline</span>
+<span>Epic Roadmap</span>
+</button>
+</div>
+<!-- Quick Filter Bar -->
+<div class="flex items-center gap-2 flex-wrap min-w-0">
+<div class="relative flex items-center min-w-[180px]">
+<span class="material-symbols-outlined absolute left-2.5 text-[16px] text-outline">filter_list</span>
+<input class="w-full bg-surface-container-high text-on-surface font-body-sm text-body-sm pl-8 pr-3 py-1 rounded-lg focus:outline-none placeholder:text-outline text-ellipsis" placeholder="Filter backlog items..." type="text"/>
+</div>
+<button class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface text-body-sm font-medium" type="button">
+<span class="w-2 h-2 rounded-full bg-tertiary"></span>
+<span>Epic</span>
+<span class="material-symbols-outlined text-[14px]">expand_more</span>
+</button>
+<button class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface text-body-sm font-medium" type="button">
+<span class="material-symbols-outlined text-[14px] text-primary">person</span>
+<span>Assignee</span>
+<span class="material-symbols-outlined text-[14px]">expand_more</span>
+</button>
+<button class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface text-body-sm font-medium" type="button">
+<span class="material-symbols-outlined text-[14px] text-error">priority_high</span>
+<span>Priority</span>
+<span class="material-symbols-outlined text-[14px]">expand_more</span>
+</button>
+<button class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg bg-surface-container text-on-surface-variant hover:text-on-surface text-body-sm font-medium" type="button">
+<span class="material-symbols-outlined text-[14px] text-secondary">score</span>
+<span>Story Points</span>
+<span class="material-symbols-outlined text-[14px]">expand_more</span>
+</button>
+<div class="h-4 w-px bg-surface-variant mx-1"></div>
+<button class="p-1 rounded-lg text-outline hover:text-on-surface hover:bg-surface-container" type="button">
+<span class="material-symbols-outlined text-[18px]">tune</span>
+</button>
+</div>
+</div>
+<!-- SPRINT 25 PLANNING CONTAINER -->
+<div class="flex flex-col gap-4 bg-surface-container-low rounded-xl p-4 shadow-md">
+<!-- Sprint Banner & Metainfo -->
+<div class="flex flex-col lg:flex-row lg:items-center justify-between gap-4 pb-3">
+<div class="flex items-center gap-3">
+<div class="flex items-center justify-center w-8 h-8 rounded-lg bg-primary-container/20 text-primary">
+<span class="material-symbols-outlined text-[20px]">flag</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-headline-md text-headline-md text-on-surface font-semibold">Sprint 25</span>
+<span class="font-label-code-sm text-label-code-sm text-secondary bg-secondary/10 px-2 py-0.5 rounded-full font-medium">Upcoming • Starts next Monday</span>
+</div>
+<span class="font-body-sm text-body-sm text-outline">Target window: Oct 28 - Nov 10 • Goal: High-Throughput Read Replica &amp; Push Service Migration</span>
+</div>
+</div>
+<div class="flex items-center gap-3">
+<!-- Overall Velocity Metric Ring / Stat -->
+<div class="flex items-center gap-3 bg-surface-container px-3.5 py-2 rounded-lg">
+<div class="flex flex-col items-end">
+<div class="flex items-baseline gap-1">
+<span class="font-headline-md text-headline-md text-on-surface font-semibold">48</span>
+<span class="font-label-code-sm text-label-code-sm text-outline">/ 55 pts</span>
+</div>
+<span class="font-label-code-sm text-[10px] text-secondary uppercase font-semibold">87% Capacity Filled</span>
+</div>
+<!-- Progress Mini Donut Ring SVG -->
+<div class="relative w-10 h-10 flex items-center justify-center">
+<svg class="w-10 h-10 transform -rotate-90" viewbox="0 0 36 36">
+<path class="text-surface-variant" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-width="3.5"></path>
+<path class="text-secondary" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" stroke-dasharray="87, 100" stroke-linecap="round" stroke-width="3.5"></path>
+</svg>
+<span class="absolute font-label-code-sm text-[10px] text-on-surface font-bold">87%</span>
+</div>
+</div>
+<button class="px-3.5 py-2 rounded-lg bg-surface-container-high hover:bg-surface-variant text-on-surface font-headline-sm text-headline-sm font-semibold flex items-center gap-1.5 shadow-sm" type="button">
+<span>Start Sprint</span>
+<span class="material-symbols-outlined text-[16px]">arrow_forward</span>
+</button>
+</div>
+</div>
+<!-- Engineer Capacity Breakdown Grid -->
+<div class="grid grid-cols-1 md:grid-cols-3 gap-3 bg-surface-container-lowest p-3 rounded-lg">
+<!-- Eng 1: Alex R. -->
+<div class="flex flex-col gap-2 p-2.5 rounded-lg bg-surface-container">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-primary/20 text-primary flex items-center justify-center font-label-code-sm text-label-code-sm font-semibold">AR</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-body-sm text-on-surface font-medium leading-none">Alex R.</span>
+<span class="font-label-code-sm text-[10px] text-outline">Backend Lead</span>
+</div>
+</div>
+<span class="font-label-code-sm text-label-code-sm text-on-surface font-semibold">16 / 18 <span class="text-outline font-normal">pts</span></span>
+</div>
+<div class="w-full bg-surface-variant h-1.5 rounded-full overflow-hidden">
+<div class="bg-primary h-full rounded-full" style="width: 88%"></div>
+</div>
+<div class="flex items-center justify-between font-label-code-sm text-[10px] text-outline">
+<span>Utilization: 88%</span>
+<span class="text-secondary font-medium">2 pts available</span>
+</div>
+</div>
+<!-- Eng 2: Elena C. -->
+<div class="flex flex-col gap-2 p-2.5 rounded-lg bg-surface-container">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-tertiary/20 text-tertiary flex items-center justify-center font-label-code-sm text-label-code-sm font-semibold">EC</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-body-sm text-on-surface font-medium leading-none">Elena C.</span>
+<span class="font-label-code-sm text-[10px] text-outline">Fullstack Eng</span>
+</div>
+</div>
+<span class="font-label-code-sm text-label-code-sm text-on-surface font-semibold">18 / 20 <span class="text-outline font-normal">pts</span></span>
+</div>
+<div class="w-full bg-surface-variant h-1.5 rounded-full overflow-hidden">
+<div class="bg-tertiary h-full rounded-full" style="width: 90%"></div>
+</div>
+<div class="flex items-center justify-between font-label-code-sm text-[10px] text-outline">
+<span>Utilization: 90%</span>
+<span class="text-secondary font-medium">2 pts available</span>
+</div>
+</div>
+<!-- Eng 3: Marcus K. -->
+<div class="flex flex-col gap-2 p-2.5 rounded-lg bg-surface-container">
+<div class="flex items-center justify-between">
+<div class="flex items-center gap-2">
+<div class="w-7 h-7 rounded-full bg-secondary/20 text-secondary flex items-center justify-center font-label-code-sm text-label-code-sm font-semibold">MK</div>
+<div class="flex flex-col">
+<span class="font-headline-sm text-body-sm text-on-surface font-medium leading-none">Marcus K.</span>
+<span class="font-label-code-sm text-[10px] text-outline">Frontend Core</span>
+</div>
+</div>
+<span class="font-label-code-sm text-label-code-sm text-on-surface font-semibold">14 / 17 <span class="text-outline font-normal">pts</span></span>
+</div>
+<div class="w-full bg-surface-variant h-1.5 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 82%"></div>
+</div>
+<div class="flex items-center justify-between font-label-code-sm text-[10px] text-outline">
+<span>Utilization: 82%</span>
+<span class="text-secondary font-medium">3 pts available</span>
+</div>
+</div>
+</div>
+<!-- Sprint 25 Candidate Issues Table -->
+<div class="overflow-x-auto w-full">
+<div class="min-w-[800px] flex flex-col gap-1">
+<!-- Table Header -->
+<div class="grid grid-cols-12 px-3 py-2 text-outline font-label-code-sm text-label-code-sm uppercase tracking-wider bg-surface-container-high rounded-md">
+<div class="col-span-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-[14px]">drag_indicator</span>
+<span>Key</span>
+</div>
+<div class="col-span-5">Summary</div>
+<div class="col-span-2">Epic Parent</div>
+<div class="col-span-1 text-center">Priority</div>
+<div class="col-span-1 text-center">Points</div>
+<div class="col-span-1">Assignee</div>
+<div class="col-span-1 text-right">Actions</div>
+</div>
+<!-- Candidate Row 1: ENG-351 -->
+<div class="grid grid-cols-12 items-center px-3 py-2.5 bg-surface-container rounded-lg hover:bg-surface-container-high transition-colors group">
+<div class="col-span-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline cursor-grab opacity-50 group-hover:opacity-100">drag_indicator</span>
+<span class="font-label-code-sm text-label-code-sm text-primary font-semibold">ENG-351</span>
+</div>
+<div class="col-span-5 flex items-center gap-2.5 min-w-0 pr-2">
+<span class="material-symbols-outlined text-[16px] text-primary">task_alt</span>
+<span class="font-body-md text-body-md text-on-surface truncate font-medium">Integrate Redis caching for high-traffic board read queries</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-label-code-sm bg-surface-container-highest text-outline">Backend</span>
+</div>
+<div class="col-span-2 flex items-center">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-secondary-container/20 text-secondary-fixed-dim font-label-code-sm text-label-code-sm">
+<span class="text-[8px]">◆</span> Performance &amp; Caching
+              </span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="material-symbols-outlined text-[18px] text-error" title="High Priority">keyboard_double_arrow_up</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<div class="px-2 py-0.5 rounded bg-surface-container-lowest font-label-code-md text-label-code-md text-on-surface font-semibold">
+                5
+              </div>
+</div>
+<div class="col-span-1 flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-label-code-sm text-[10px] font-semibold">AR</div>
+<span class="font-body-sm text-body-sm text-on-surface truncate">Alex R.</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-variant" type="button"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+<button class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-variant" type="button"><span class="material-symbols-outlined text-[16px]">more_horiz</span></button>
+</div>
+</div>
+<!-- Candidate Row 2: ENG-352 -->
+<div class="grid grid-cols-12 items-center px-3 py-2.5 bg-surface-container rounded-lg hover:bg-surface-container-high transition-colors group">
+<div class="col-span-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline cursor-grab opacity-50 group-hover:opacity-100">drag_indicator</span>
+<span class="font-label-code-sm text-label-code-sm text-primary font-semibold">ENG-352</span>
+</div>
+<div class="col-span-5 flex items-center gap-2.5 min-w-0 pr-2">
+<span class="material-symbols-outlined text-[16px] text-primary">task_alt</span>
+<span class="font-body-md text-body-md text-on-surface truncate font-medium">Full-text task search engine with elastic autocomplete</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-label-code-sm bg-surface-container-highest text-outline">Fullstack</span>
+</div>
+<div class="col-span-2 flex items-center">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-tertiary-container/20 text-tertiary-fixed-dim font-label-code-sm text-label-code-sm">
+<span class="text-[8px]">◆</span> Real-Time Sync &amp; Collab
+              </span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="material-symbols-outlined text-[18px] text-error" title="High Priority">keyboard_double_arrow_up</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<div class="px-2 py-0.5 rounded bg-surface-container-lowest font-label-code-md text-label-code-md text-on-surface font-semibold">
+                8
+              </div>
+</div>
+<div class="col-span-1 flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-tertiary/20 text-tertiary flex items-center justify-center font-label-code-sm text-[10px] font-semibold">EC</div>
+<span class="font-body-sm text-body-sm text-on-surface truncate">Elena C.</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-variant" type="button"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+<button class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-variant" type="button"><span class="material-symbols-outlined text-[16px]">more_horiz</span></button>
+</div>
+</div>
+<!-- Candidate Row 3: ENG-354 -->
+<div class="grid grid-cols-12 items-center px-3 py-2.5 bg-surface-container rounded-lg hover:bg-surface-container-high transition-colors group">
+<div class="col-span-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline cursor-grab opacity-50 group-hover:opacity-100">drag_indicator</span>
+<span class="font-label-code-sm text-label-code-sm text-primary font-semibold">ENG-354</span>
+</div>
+<div class="col-span-5 flex items-center gap-2.5 min-w-0 pr-2">
+<span class="material-symbols-outlined text-[16px] text-primary">task_alt</span>
+<span class="font-body-md text-body-md text-on-surface truncate font-medium">In-app notification badge &amp; web push alerts</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-label-code-sm bg-surface-container-highest text-outline">Frontend</span>
+</div>
+<div class="col-span-2 flex items-center">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-500/15 text-amber-300 font-label-code-sm text-label-code-sm">
+<span class="text-[8px]">◆</span> Notification &amp; Engage
+              </span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="material-symbols-outlined text-[18px] text-secondary" title="Medium Priority">equal</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<div class="px-2 py-0.5 rounded bg-surface-container-lowest font-label-code-md text-label-code-md text-on-surface font-semibold">
+                5
+              </div>
+</div>
+<div class="col-span-1 flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-secondary/20 text-secondary flex items-center justify-center font-label-code-sm text-[10px] font-semibold">MK</div>
+<span class="font-body-sm text-body-sm text-on-surface truncate">Marcus K.</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-variant" type="button"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+<button class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-variant" type="button"><span class="material-symbols-outlined text-[16px]">more_horiz</span></button>
+</div>
+</div>
+<!-- Candidate Row 4: ENG-358 -->
+<div class="grid grid-cols-12 items-center px-3 py-2.5 bg-surface-container rounded-lg hover:bg-surface-container-high transition-colors group">
+<div class="col-span-1 flex items-center gap-2">
+<span class="material-symbols-outlined text-[16px] text-outline cursor-grab opacity-50 group-hover:opacity-100">drag_indicator</span>
+<span class="font-label-code-sm text-label-code-sm text-primary font-semibold">ENG-358</span>
+</div>
+<div class="col-span-5 flex items-center gap-2.5 min-w-0 pr-2">
+<span class="material-symbols-outlined text-[16px] text-error">warning</span>
+<span class="font-body-md text-body-md text-on-surface truncate font-medium">Token refresh rotation &amp; secure WebSocket handshake profiling</span>
+<span class="px-1.5 py-0.5 rounded text-[10px] font-label-code-sm bg-error-container/30 text-error font-semibold">Security</span>
+</div>
+<div class="col-span-2 flex items-center">
+<span class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full bg-tertiary-container/20 text-tertiary-fixed-dim font-label-code-sm text-label-code-sm">
+<span class="text-[8px]">◆</span> Real-Time Sync &amp; Collab
+              </span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="material-symbols-outlined text-[18px] text-error font-bold" title="Urgent Priority">priority_high</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<div class="px-2 py-0.5 rounded bg-surface-container-lowest font-label-code-md text-label-code-md text-on-surface font-semibold">
+                8
+              </div>
+</div>
+<div class="col-span-1 flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-primary/20 text-primary flex items-center justify-center font-label-code-sm text-[10px] font-semibold">AR</div>
+<span class="font-body-sm text-body-sm text-on-surface truncate">Alex R.</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-variant" type="button"><span class="material-symbols-outlined text-[16px]">edit</span></button>
+<button class="p-1 rounded text-outline hover:text-on-surface hover:bg-surface-variant" type="button"><span class="material-symbols-outlined text-[16px]">more_horiz</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Add Issue to Sprint 25 -->
+<button class="flex items-center gap-2 px-3 py-2 rounded-lg bg-surface-container-lowest hover:bg-surface-container text-outline hover:text-on-surface font-body-sm text-body-sm transition-colors text-left" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary">add_circle</span>
+<span>+ Add item to Sprint 25 candidates (Type task name or press Enter)</span>
+</button>
+</div>
+<!-- PRODUCT BACKLOG POOL SECTION -->
+<div class="flex flex-col gap-4 bg-surface-container-low rounded-xl p-4 shadow-md">
+<!-- Backlog Header & Bulk Action Floating Tray -->
+<div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+<div class="flex items-center gap-3">
+<div class="flex items-center justify-center w-8 h-8 rounded-lg bg-surface-container text-tertiary">
+<span class="material-symbols-outlined text-[20px]">layers</span>
+</div>
+<div class="flex flex-col">
+<div class="flex items-center gap-2">
+<span class="font-headline-md text-headline-md text-on-surface font-semibold">Product Backlog</span>
+<span class="font-label-code-sm text-label-code-sm px-2 py-0.5 rounded-full bg-surface-container-high text-outline">28 Issues • 112 Estimated Points</span>
+</div>
+<span class="font-body-sm text-body-sm text-outline">Ungroomed and groomed issues segmented across priority epic streams.</span>
+</div>
+</div>
+<!-- Bulk Action Controls -->
+<div class="flex items-center gap-2">
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-sm text-body-sm transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px] text-primary">group_add</span>
+<span>Bulk Assign</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-surface-container hover:bg-surface-container-high text-on-surface font-body-sm text-body-sm transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px] text-secondary">casino</span>
+<span>Estimate Points</span>
+</button>
+<button class="flex items-center gap-1.5 px-3 py-1.5 rounded-lg bg-primary hover:bg-primary/90 text-on-primary font-headline-sm text-headline-sm font-semibold transition-colors shadow-sm" type="button">
+<span class="material-symbols-outlined text-[16px]">drive_file_move</span>
+<span>Move to Sprint 25</span>
+</button>
+</div>
+</div>
+<!-- Epic Accordion Stack -->
+<div class="flex flex-col gap-3">
+<!-- EPIC 1: Real-Time Sync & Collab -->
+<div class="flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm">
+<div class="flex items-center justify-between px-4 py-3 bg-surface-container cursor-pointer select-none">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[18px] text-outline">expand_more</span>
+<div class="w-2.5 h-2.5 rounded-full bg-tertiary"></div>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Epic: Real-Time Sync &amp; Collab</span>
+<span class="font-label-code-sm text-label-code-sm px-2 py-0.5 rounded bg-tertiary-container/30 text-tertiary-fixed-dim font-medium">Violet Core</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-label-code-sm text-label-code-sm text-outline">4 issues • 24 pts total</span>
+<div class="w-24 bg-surface-variant h-1.5 rounded-full overflow-hidden">
+<div class="bg-tertiary h-full rounded-full" style="width: 45%"></div>
+</div>
+<span class="material-symbols-outlined text-[18px] text-outline hover:text-on-surface">add</span>
+</div>
+</div>
+<!-- Epic 1 Issues -->
+<div class="flex flex-col p-2 gap-1">
+<!-- Row: ENG-360 -->
+<div class="grid grid-cols-12 items-center px-3 py-2 bg-surface-container rounded hover:bg-surface-container-high transition-colors group">
+<div class="col-span-1 flex items-center gap-2">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox"/>
+<span class="font-label-code-sm text-label-code-sm text-outline font-medium">ENG-360</span>
+</div>
+<div class="col-span-6 flex items-center gap-2 truncate pr-2">
+<span class="font-body-md text-body-md text-on-surface truncate">CRDT conflict resolution for concurrent card descriptions</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-label-code-sm bg-surface-container-highest text-outline">Protocol</span>
+</div>
+<div class="col-span-2 flex items-center justify-start">
+<span class="px-2 py-0.5 rounded-full text-badge-status font-badge-status bg-tertiary/15 text-tertiary font-semibold">Ready for Review</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="material-symbols-outlined text-[16px] text-error" title="High">keyboard_arrow_up</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="font-label-code-sm text-label-code-sm px-2 py-0.5 rounded bg-surface-container-lowest text-on-surface font-semibold">8 pts</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">arrow_upward</span></button>
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">more_vert</span></button>
+</div>
+</div>
+<!-- Row: ENG-361 -->
+<div class="grid grid-cols-12 items-center px-3 py-2 bg-surface-container rounded hover:bg-surface-container-high transition-colors group">
+<div class="col-span-1 flex items-center gap-2">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox"/>
+<span class="font-label-code-sm text-label-code-sm text-outline font-medium">ENG-361</span>
+</div>
+<div class="col-span-6 flex items-center gap-2 truncate pr-2">
+<span class="font-body-md text-body-md text-on-surface truncate">Live presence cursor tracking smoothing via cubic interpolation</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-label-code-sm bg-surface-container-highest text-outline">Frontend</span>
+</div>
+<div class="col-span-2 flex items-center justify-start">
+<span class="px-2 py-0.5 rounded-full text-badge-status font-badge-status bg-surface-container-highest text-outline font-semibold">Groomed</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="material-symbols-outlined text-[16px] text-secondary" title="Medium">equal</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="font-label-code-sm text-label-code-sm px-2 py-0.5 rounded bg-surface-container-lowest text-on-surface font-semibold">5 pts</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">arrow_upward</span></button>
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">more_vert</span></button>
+</div>
+</div>
+<!-- Row: ENG-362 -->
+<div class="grid grid-cols-12 items-center px-3 py-2 bg-surface-container rounded hover:bg-surface-container-high transition-colors group">
+<div class="col-span-1 flex items-center gap-2">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox"/>
+<span class="font-label-code-sm text-label-code-sm text-outline font-medium">ENG-362</span>
+</div>
+<div class="col-span-6 flex items-center gap-2 truncate pr-2">
+<span class="font-body-md text-body-md text-on-surface truncate">Heartbeat keep-alive re-connection backoff optimization</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-label-code-sm bg-surface-container-highest text-outline">Network</span>
+</div>
+<div class="col-span-2 flex items-center justify-start">
+<span class="px-2 py-0.5 rounded-full text-badge-status font-badge-status bg-surface-container-highest text-outline font-semibold">Groomed</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="material-symbols-outlined text-[16px] text-outline" title="Low">keyboard_arrow_down</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="font-label-code-sm text-label-code-sm px-2 py-0.5 rounded bg-surface-container-lowest text-on-surface font-semibold">3 pts</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">arrow_upward</span></button>
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">more_vert</span></button>
+</div>
+</div>
+<!-- Row: ENG-365 -->
+<div class="grid grid-cols-12 items-center px-3 py-2 bg-surface-container rounded hover:bg-surface-container-high transition-colors group">
+<div class="col-span-1 flex items-center gap-2">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox"/>
+<span class="font-label-code-sm text-label-code-sm text-outline font-medium">ENG-365</span>
+</div>
+<div class="col-span-6 flex items-center gap-2 truncate pr-2">
+<span class="font-body-md text-body-md text-on-surface truncate">WebSocket load balancer session affinity pinning on AWS ALB</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-label-code-sm bg-surface-container-highest text-outline">DevOps</span>
+</div>
+<div class="col-span-2 flex items-center justify-start">
+<span class="px-2 py-0.5 rounded-full text-badge-status font-badge-status bg-error/15 text-error font-semibold">Needs Pointing</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="material-symbols-outlined text-[16px] text-error" title="High">keyboard_arrow_up</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="font-label-code-sm text-label-code-sm px-2 py-0.5 rounded bg-surface-container-lowest text-outline font-semibold">8 pts</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">arrow_upward</span></button>
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">more_vert</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- EPIC 2: Performance & Caching -->
+<div class="flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm">
+<div class="flex items-center justify-between px-4 py-3 bg-surface-container cursor-pointer select-none">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[18px] text-outline">expand_more</span>
+<div class="w-2.5 h-2.5 rounded-full bg-secondary"></div>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Epic: Performance &amp; Caching</span>
+<span class="font-label-code-sm text-label-code-sm px-2 py-0.5 rounded bg-secondary-container/20 text-secondary-fixed font-medium">Cyan Stream</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-label-code-sm text-label-code-sm text-outline">6 issues • 32 pts total</span>
+<div class="w-24 bg-surface-variant h-1.5 rounded-full overflow-hidden">
+<div class="bg-secondary h-full rounded-full" style="width: 62%"></div>
+</div>
+<span class="material-symbols-outlined text-[18px] text-outline hover:text-on-surface">add</span>
+</div>
+</div>
+<!-- Epic 2 Issues -->
+<div class="flex flex-col p-2 gap-1">
+<!-- Row: ENG-370 -->
+<div class="grid grid-cols-12 items-center px-3 py-2 bg-surface-container rounded hover:bg-surface-container-high transition-colors group">
+<div class="col-span-1 flex items-center gap-2">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox"/>
+<span class="font-label-code-sm text-label-code-sm text-outline font-medium">ENG-370</span>
+</div>
+<div class="col-span-6 flex items-center gap-2 truncate pr-2">
+<span class="font-body-md text-body-md text-on-surface truncate">Migrate GraphQL resolvers to Dataloader pattern for batch issue joins</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-label-code-sm bg-surface-container-highest text-outline">Data</span>
+</div>
+<div class="col-span-2 flex items-center justify-start">
+<span class="px-2 py-0.5 rounded-full text-badge-status font-badge-status bg-surface-container-highest text-outline font-semibold">Groomed</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="material-symbols-outlined text-[16px] text-error" title="High">keyboard_arrow_up</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="font-label-code-sm text-label-code-sm px-2 py-0.5 rounded bg-surface-container-lowest text-on-surface font-semibold">5 pts</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">arrow_upward</span></button>
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">more_vert</span></button>
+</div>
+</div>
+<!-- Row: ENG-371 -->
+<div class="grid grid-cols-12 items-center px-3 py-2 bg-surface-container rounded hover:bg-surface-container-high transition-colors group">
+<div class="col-span-1 flex items-center gap-2">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox"/>
+<span class="font-label-code-sm text-label-code-sm text-outline font-medium">ENG-371</span>
+</div>
+<div class="col-span-6 flex items-center gap-2 truncate pr-2">
+<span class="font-body-md text-body-md text-on-surface truncate">Client-side IndexedDB cache invalidation logic upon workspace switch</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-label-code-sm bg-surface-container-highest text-outline">Frontend</span>
+</div>
+<div class="col-span-2 flex items-center justify-start">
+<span class="px-2 py-0.5 rounded-full text-badge-status font-badge-status bg-surface-container-highest text-outline font-semibold">Groomed</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="material-symbols-outlined text-[16px] text-secondary" title="Medium">equal</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="font-label-code-sm text-label-code-sm px-2 py-0.5 rounded bg-surface-container-lowest text-on-surface font-semibold">8 pts</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">arrow_upward</span></button>
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">more_vert</span></button>
+</div>
+</div>
+<!-- Row: ENG-373 -->
+<div class="grid grid-cols-12 items-center px-3 py-2 bg-surface-container rounded hover:bg-surface-container-high transition-colors group">
+<div class="col-span-1 flex items-center gap-2">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox"/>
+<span class="font-label-code-sm text-label-code-sm text-outline font-medium">ENG-373</span>
+</div>
+<div class="col-span-6 flex items-center gap-2 truncate pr-2">
+<span class="font-body-md text-body-md text-on-surface truncate">Benchmark PostgreSQL partition query times for completed sprints</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-label-code-sm bg-surface-container-highest text-outline">DBA</span>
+</div>
+<div class="col-span-2 flex items-center justify-start">
+<span class="px-2 py-0.5 rounded-full text-badge-status font-badge-status bg-tertiary/15 text-tertiary font-semibold">Ready for Review</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="material-symbols-outlined text-[16px] text-outline" title="Low">keyboard_arrow_down</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="font-label-code-sm text-label-code-sm px-2 py-0.5 rounded bg-surface-container-lowest text-on-surface font-semibold">3 pts</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">arrow_upward</span></button>
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">more_vert</span></button>
+</div>
+</div>
+</div>
+</div>
+<!-- EPIC 3: Notification & Engagement -->
+<div class="flex flex-col bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm">
+<div class="flex items-center justify-between px-4 py-3 bg-surface-container cursor-pointer select-none">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-[18px] text-outline">expand_more</span>
+<div class="w-2.5 h-2.5 rounded-full bg-amber-400"></div>
+<span class="font-headline-sm text-headline-sm text-on-surface font-semibold">Epic: Notification &amp; Engagement</span>
+<span class="font-label-code-sm text-label-code-sm px-2 py-0.5 rounded bg-amber-500/15 text-amber-300 font-medium">Amber Stream</span>
+</div>
+<div class="flex items-center gap-4">
+<span class="font-label-code-sm text-label-code-sm text-outline">8 issues • 28 pts total</span>
+<div class="w-24 bg-surface-variant h-1.5 rounded-full overflow-hidden">
+<div class="bg-amber-400 h-full rounded-full" style="width: 30%"></div>
+</div>
+<span class="material-symbols-outlined text-[18px] text-outline hover:text-on-surface">add</span>
+</div>
+</div>
+<!-- Epic 3 Issues -->
+<div class="flex flex-col p-2 gap-1">
+<!-- Row: ENG-380 -->
+<div class="grid grid-cols-12 items-center px-3 py-2 bg-surface-container rounded hover:bg-surface-container-high transition-colors group">
+<div class="col-span-1 flex items-center gap-2">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox"/>
+<span class="font-label-code-sm text-label-code-sm text-outline font-medium">ENG-380</span>
+</div>
+<div class="col-span-6 flex items-center gap-2 truncate pr-2">
+<span class="font-body-md text-body-md text-on-surface truncate">Slack Webhook integrations for sprint milestone reminders</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-label-code-sm bg-surface-container-highest text-outline">Integrations</span>
+</div>
+<div class="col-span-2 flex items-center justify-start">
+<span class="px-2 py-0.5 rounded-full text-badge-status font-badge-status bg-surface-container-highest text-outline font-semibold">Groomed</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="material-symbols-outlined text-[16px] text-secondary" title="Medium">equal</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="font-label-code-sm text-label-code-sm px-2 py-0.5 rounded bg-surface-container-lowest text-on-surface font-semibold">3 pts</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">arrow_upward</span></button>
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">more_vert</span></button>
+</div>
+</div>
+<!-- Row: ENG-382 -->
+<div class="grid grid-cols-12 items-center px-3 py-2 bg-surface-container rounded hover:bg-surface-container-high transition-colors group">
+<div class="col-span-1 flex items-center gap-2">
+<input class="rounded bg-surface-container-lowest text-primary focus:ring-0 cursor-pointer" type="checkbox"/>
+<span class="font-label-code-sm text-label-code-sm text-outline font-medium">ENG-382</span>
+</div>
+<div class="col-span-6 flex items-center gap-2 truncate pr-2">
+<span class="font-body-md text-body-md text-on-surface truncate">Email digest rollup trigger during off-hours maintenance</span>
+<span class="px-1.5 py-0.2 rounded text-[10px] font-label-code-sm bg-surface-container-highest text-outline">Backend</span>
+</div>
+<div class="col-span-2 flex items-center justify-start">
+<span class="px-2 py-0.5 rounded-full text-badge-status font-badge-status bg-error/15 text-error font-semibold">Needs Pointing</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="material-symbols-outlined text-[16px] text-outline" title="Low">keyboard_arrow_down</span>
+</div>
+<div class="col-span-1 flex justify-center">
+<span class="font-label-code-sm text-label-code-sm px-2 py-0.5 rounded bg-surface-container-lowest text-outline font-semibold">-- pts</span>
+</div>
+<div class="col-span-1 flex items-center justify-end gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">arrow_upward</span></button>
+<button class="p-1 rounded text-outline hover:text-on-surface" type="button"><span class="material-symbols-outlined text-[16px]">more_vert</span></button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div></main></div></body></html>
