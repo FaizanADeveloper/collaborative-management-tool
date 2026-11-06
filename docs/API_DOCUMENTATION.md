@@ -70,8 +70,14 @@ CORS_ORIGIN=http://localhost:5173
 # Install dependencies
 npm --prefix backend install
 
-# Run automated tests
+# Run offline unit tests (183 tests)
 npm --prefix backend test
+
+# Run live MongoDB Atlas integration tests (12 tests)
+npm --prefix backend run test:integration
+
+# Run complete test suite (195 tests)
+npm --prefix backend run test:all
 
 # Run development server with auto-reload
 npm --prefix backend run dev

@@ -32,5 +32,6 @@ collaborative-management-tool/
 
 ## Documentation
 
-Refer to [PROJECT_BRIEF.pdf](docs/PROJECT_BRIEF.pdf) for the complete 4-week development roadmap and system specifications.
-
+- [Project Brief](docs/PROJECT_BRIEF.pdf) — Complete 4-week development roadmap and system specifications.
+- [REST API Documentation](docs/API_DOCUMENTATION.md) — Complete REST endpoints, request/response models, and frontend integration contracts.
+- [Backend Architecture & Testing Guide](backend/README.md) — Setup instructions, offline unit tests, and live Atlas integration testing workflows.
