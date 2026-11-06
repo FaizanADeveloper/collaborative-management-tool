@@ -6,7 +6,10 @@
   "scripts": {
     "start": "node src/server.js",
     "dev": "nodemon src/server.js",
-    "test": "jest --runInBand --passWithNoTests"
+    "test": "jest --testPathIgnorePatterns=integration --runInBand --passWithNoTests",
+    "test:unit": "jest --testPathIgnorePatterns=integration --runInBand --passWithNoTests",
+    "test:integration": "jest tests/integration --runInBand --testTimeout=15000",
+    "test:all": "jest --runInBand --passWithNoTests --testTimeout=15000"
   },
   "keywords": [
     "kanban",
