@@ -1,4 +1,4 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useId } from 'react';
 import { X } from 'lucide-react';
 
 export const Modal = ({
@@ -7,9 +7,11 @@ export const Modal = ({
   title,
   subtitle,
   children,
-  maxWidth = 'max-w-xl',
+  maxWidth = 'max-w-lg',
   className = '',
 }) => {
+  const titleId = useId();
+
   useEffect(() => {
     const handleKeyDown = (e) => {
       if (e.key === 'Escape' && isOpen) {
@@ -21,7 +23,7 @@ export const Modal = ({
       window.addEventListener('keydown', handleKeyDown);
     }
     return () => {
-      document.body.style.overflow = 'unset';
+      document.body.style.overflow = '';
       window.removeEventListener('keydown', handleKeyDown);
     };
   }, [isOpen, onClose]);
@@ -29,44 +31,45 @@ export const Modal = ({
   if (!isOpen) return null;
 
   return (
-    <div className="fixed inset-0 z-50 overflow-y-auto">
-      {/* Backdrop */}
+    <div
+      className="fixed inset-0 z-50 overflow-y-auto"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby={title ? titleId : undefined}
+    >
       <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity animate-in fade-in duration-200"
+        className="fixed inset-0 bg-slate-950/60 backdrop-blur-[2px] transition-opacity"
         onClick={onClose}
+        aria-hidden="true"
       />
 
       <div className="flex min-h-full items-center justify-center p-4 text-center">
         <div
-          className={`w-full ${maxWidth} transform overflow-hidden rounded-xl bg-slate-900 border border-slate-700/80 p-6 text-left align-middle shadow-2xl transition-all relative ${className}`}
+          className={`w-full ${maxWidth} transform overflow-hidden rounded-xl bg-elevated border border-line-strong p-6 text-left align-middle shadow-xl transition-all relative ${className}`}
           onClick={(e) => e.stopPropagation()}
         >
-          {/* Header */}
-          <div className="flex items-start justify-between pb-4 border-b border-slate-800">
+          <div className="flex items-start justify-between pb-4 border-b border-line">
             <div>
               {title && (
-                <h3 className="text-lg font-semibold text-slate-100">
+                <h3 id={titleId} className="text-base font-semibold text-ink">
                   {title}
                 </h3>
               )}
               {subtitle && (
-                <p className="text-xs text-slate-400 mt-0.5">
-                  {subtitle}
-                </p>
+                <p className="text-xs text-ink-muted mt-1">{subtitle}</p>
               )}
             </div>
             <button
+              type="button"
               onClick={onClose}
-              className="rounded-lg p-1 text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+              aria-label="Close modal"
+              className="rounded-lg p-1.5 text-ink-muted hover:text-ink hover:bg-subtle transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
-              <X className="w-5 h-5" />
+              <X className="w-4 h-4" />
             </button>
           </div>
 
-          {/* Body */}
-          <div className="mt-4">
-            {children}
-          </div>
+          <div className="mt-4">{children}</div>
         </div>
       </div>
     </div>
@@ -83,8 +86,10 @@ export const Card = ({
   return (
     <div
       onClick={onClick}
-      className={`rounded-xl bg-slate-900/60 border border-slate-800/80 p-5 ${
-        hover ? 'hover:border-slate-700/80 hover:bg-slate-900/90 transition-all duration-150 cursor-pointer' : ''
+      className={`rounded-xl bg-surface border border-line p-5 ${
+        hover
+          ? 'hover:border-line-strong hover:bg-subtle/50 transition-colors duration-150 cursor-pointer'
+          : ''
       } ${className}`}
       {...props}
     >
@@ -92,4 +97,3 @@ export const Card = ({
     </div>
   );
 };
-

@@ -2,41 +2,51 @@ import React from 'react';
 
 export const Badge = ({
   children,
-  variant = 'default', // 'default', 'primary', 'success', 'warning', 'danger', 'info', 'neutral'
-  size = 'sm', // 'xs', 'sm', 'md'
+  variant = 'default',
+  size = 'sm',
   dot = false,
   className = '',
 }) => {
   const variants = {
-    default: 'bg-slate-800 text-slate-300 border-slate-700/60',
-    primary: 'bg-indigo-950/60 text-indigo-300 border-indigo-700/40',
-    success: 'bg-emerald-950/60 text-emerald-300 border-emerald-700/40',
-    warning: 'bg-amber-950/60 text-amber-300 border-amber-700/40',
-    danger: 'bg-rose-950/60 text-rose-300 border-rose-700/40',
-    info: 'bg-sky-950/60 text-sky-300 border-sky-700/40',
-    purple: 'bg-purple-950/60 text-purple-300 border-purple-700/40',
+    default: 'bg-subtle text-ink-secondary border-line',
+    primary:
+      'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800/50',
+    success:
+      'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/50',
+    warning:
+      'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/50',
+    danger:
+      'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/50',
+    info:
+      'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800/50',
   };
 
   const sizes = {
-    xs: 'px-1.5 py-0.5 text-[10px] font-mono tracking-tight',
+    xs: 'px-1.5 py-0.5 text-[11px] font-medium',
     sm: 'px-2 py-0.5 text-xs font-medium',
     md: 'px-2.5 py-1 text-xs font-medium',
   };
 
   const dotColors = {
     default: 'bg-slate-400',
-    primary: 'bg-indigo-400',
-    success: 'bg-emerald-400',
-    warning: 'bg-amber-400',
-    danger: 'bg-rose-400',
-    info: 'bg-sky-400',
-    purple: 'bg-purple-400',
+    primary: 'bg-indigo-500',
+    success: 'bg-emerald-500',
+    warning: 'bg-amber-500',
+    danger: 'bg-rose-500',
+    info: 'bg-sky-500',
   };
 
   return (
-    <span className={`inline-flex items-center gap-1.5 rounded-md border font-medium select-none ${variants[variant] || variants.default} ${sizes[size] || sizes.sm} ${className}`}>
+    <span
+      className={`inline-flex items-center gap-1.5 rounded-md border select-none ${
+        variants[variant] || variants.default
+      } ${sizes[size] || sizes.sm} ${className}`}
+    >
       {dot && (
-        <span className={`w-1.5 h-1.5 rounded-full ${dotColors[variant] || dotColors.default}`} />
+        <span
+          className={`w-1.5 h-1.5 rounded-full ${dotColors[variant] || dotColors.default}`}
+          aria-hidden="true"
+        />
       )}
       {children}
     </span>
@@ -73,6 +83,30 @@ export const PriorityBadge = ({ priority }) => {
   }
 };
 
+export const RoleBadge = ({ role }) => {
+  switch (role) {
+    case 'owner':
+      return (
+        <Badge variant="primary" size="xs">
+          Owner
+        </Badge>
+      );
+    case 'admin':
+      return (
+        <Badge variant="info" size="xs">
+          Admin
+        </Badge>
+      );
+    case 'member':
+    default:
+      return (
+        <Badge variant="default" size="xs">
+          Member
+        </Badge>
+      );
+  }
+};
+
 export const StatusBadge = ({ status }) => {
   switch (status) {
     case 'in_progress':
@@ -102,4 +136,3 @@ export const StatusBadge = ({ status }) => {
       );
   }
 };
-

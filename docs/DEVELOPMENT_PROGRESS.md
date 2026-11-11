@@ -24,7 +24,17 @@ Tracks verified implementation milestones, testing, builds, and commit history f
 - Backend unit tests (`npm.cmd --prefix backend test`): 9 suites, 183/183 passed.
 
 **Commit:**
-- `feat(frontend): establish Vite and Tailwind application foundation` (Commit 1 on `frontend` branch after integration merge `5ffcbd5`).
+- `357f2c4` — `feat(frontend): establish Vite and Tailwind application foundation`
+
+**Milestone 2 (Product Design System & Shell Refinement):**
+- **Completed:**
+  - Defined dual-theme CSS semantic variables (`--bg-canvas`, `--bg-surface`, `--bg-subtle`, `--bg-elevated`, `--border-subtle`, `--border-strong`, `--text-primary`, `--text-secondary`, `--text-muted`, `--accent`) across Light and Dark modes in `frontend/src/index.css` and `frontend/tailwind.config.js`.
+  - Refactored `Button`, `Input`, `Textarea`, `Select`, `Modal`, `Badge`, `RoleBadge`, `PriorityBadge`, and `Avatar` for dual-theme contrast, semantic HTML labels, and accessible ARIA dialogs.
+  - Added reusable `ConfirmDialog`, `EmptyState`, `Skeleton` (`BoardSkeleton`), and `ToastContainer` components.
+  - Refined `AppLayout`, `Sidebar` (responsive mobile slide-over drawer), and `Navbar` while removing fake Socket.IO ping simulation telemetry.
+- **Testing & Build:**
+  - Frontend tests (`npm.cmd --prefix frontend test`): 3/3 passed.
+  - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 1.00s).
 
 **Remaining work:**
 - Refine consistent dual-theme product design system and reusable layout/common UI primitives.
