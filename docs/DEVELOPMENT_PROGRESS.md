@@ -60,12 +60,23 @@ Tracks verified implementation milestones, testing, builds, and commit history f
 - **Testing & Build:**
   - Frontend tests (`npm.cmd --prefix frontend test`): 4 test files, 19/19 tests passed (`WorkspaceFlow.test.jsx` added).
   - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 818ms).
+- **Commit:**
+  - `68d9712` — `feat(frontend): integrate workspace management and membership`
+
+**Milestone 5 (Dynamic Board & List Management):**
+- **Completed:**
+  - Added `frontend/src/utils/positioning.js` implementing deterministic `{ position, createdAt }` sorting, midpoint floating-point insert calculation, and rebalance detection/generation.
+  - Created `boardService.js`, `listService.js`, `cardService.js`, and `useBoardStore.js` supporting Board CRUD, ordered List CRUD, race-guarded board/list/card hydration, and logout cleanup.
+  - Built `BoardCreateModal.jsx` (Create + Edit Board) and refactored `BoardsPage` (`ProjectsPage.jsx`), `ProjectDetailsPage.jsx`, `Sidebar.jsx`, `Navbar.jsx`, and `App.jsx` (`/boards` and `/projects` routes) with owner/admin/creator RBAC and `ConfirmDialog` deletion safeguards.
+  - Refactored `KanbanBoard.jsx` and `KanbanColumn.jsx` to replace hardcoded status columns with dynamic ordered lists supporting inline creation, inline rename, horizontal drag-and-drop + accessible left/right reordering with optimistic rollback, and cascading deletion confirmation.
+- **Testing & Build:**
+  - Frontend tests (`npm.cmd --prefix frontend test`): 6 test files, 26/26 tests passed (`positioning.test.js` and `BoardAndList.test.jsx` added).
+  - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 1.24s).
 
 **Remaining work:**
-- Replace remaining legacy board/list/card views with dynamic `Workspace -> Board -> List -> Card` stores and workflows.
-- Implement persistent card positioning and drag-and-drop with optimistic rollback handling.
+- Wire full Card CRUD (`TaskCard`, `TaskCreateModal`, `TaskDetailsDrawer`, `TaskFilters`) and persistent card drag-and-drop (`PATCH /api/cards/:id/move`) with optimistic rollback.
 - Refactor Dashboard analytics, Command Palette, and responsive states around real MongoDB Atlas data.
 - Add comprehensive frontend component/integration coverage, run end-to-end live verification, and evaluate scoped Week 3 real-time sync.
 
 **Next session:**
-- Implement Milestone 5 (Dynamic Board and List CRUD, ordering, empty states, and confirmation dialogs).
+- Implement Milestone 6 (Card management, field editing, filtering, and persistent `@hello-pangea/dnd` card drag-and-drop).

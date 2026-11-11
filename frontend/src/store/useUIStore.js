@@ -63,8 +63,10 @@ export const useUIStore = create((set, get) => ({
   closeJoinWorkspace: () => set({ isJoinWorkspaceOpen: false }),
 
   isCreateBoardOpen: false,
-  openCreateBoard: () => set({ isCreateBoardOpen: true }),
-  closeCreateBoard: () => set({ isCreateBoardOpen: false }),
+  editingBoard: null,
+  openCreateBoard: () => set({ isCreateBoardOpen: true, editingBoard: null }),
+  openEditBoard: (board) => set({ isCreateBoardOpen: true, editingBoard: board }),
+  closeCreateBoard: () => set({ isCreateBoardOpen: false, editingBoard: null }),
 
   isCreateCardOpen: false,
   defaultListId: null,

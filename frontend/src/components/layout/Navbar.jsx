@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { useUIStore } from '../../store/useUIStore';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
+import { useBoardStore } from '../../store/useBoardStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Avatar } from '../common/Avatar';
 import { Button } from '../common/Button';
@@ -21,13 +22,13 @@ export const Navbar = () => {
     sidebarCollapsed,
     openMobileSidebar,
     openCommandPalette,
-    openCreateTask,
+    openCreateCard,
     theme,
     toggleTheme,
   } = useUIStore();
 
-  const { workspaces = [], activeWorkspaceId, projects = [], activeProjectId } =
-    useWorkspaceStore();
+  const { workspaces = [], activeWorkspaceId } = useWorkspaceStore();
+  const { boards = [], activeBoardId, activeBoard, lists = [] } = useBoardStore();
 
   const { user, logout } = useAuthStore();
   const navigate = useNavigate();
@@ -36,7 +37,7 @@ export const Navbar = () => {
   const profileRef = useRef(null);
 
   const activeWorkspace = workspaces.find((w) => w.id === activeWorkspaceId);
-  const activeProject = projects.find((p) => p.id === activeProjectId);
+  const currentBoard = activeBoard || boards.find((b) => b.id === activeBoardId) || null;
 
   useEffect(() => {
     const handleClickOutside = (e) => {
@@ -75,11 +76,11 @@ export const Navbar = () => {
           <span className="font-semibold text-ink hidden sm:inline truncate">
             {activeWorkspace?.name || 'Workspace'}
           </span>
-          {activeProject && (
+          {currentBoard && (
             <>
               <span className="text-line-strong hidden sm:inline">/</span>
               <span className="text-ink-secondary truncate">
-                {activeProject.name}
+                {currentBoard.name}
               </span>
             </>
           )}
@@ -107,7 +108,8 @@ export const Navbar = () => {
           variant="primary"
           size="sm"
           icon={Plus}
-          onClick={() => openCreateTask('todo')}
+          disabled={!currentBoard || lists.length === 0}
+          onClick={() => openCreateCard(lists[0]?.id || null)}
           className="hidden sm:inline-flex"
         >
           New Card

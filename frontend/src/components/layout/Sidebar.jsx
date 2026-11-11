@@ -1,6 +1,7 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
+import { useBoardStore } from '../../store/useBoardStore';
 import { useUIStore } from '../../store/useUIStore';
 import { RoleBadge } from '../common/Badge';
 import {
@@ -25,18 +26,21 @@ export const Sidebar = () => {
     workspaces = [],
     activeWorkspaceId,
     setActiveWorkspaceId,
-    projects = [],
-    activeProjectId,
-    setActiveProjectId,
     isLoadingWorkspaces,
   } = useWorkspaceStore();
+
+  const {
+    boards = [],
+    activeBoardId,
+    setActiveBoardId,
+  } = useBoardStore();
 
   const {
     sidebarCollapsed,
     mobileSidebarOpen,
     toggleSidebar,
     closeMobileSidebar,
-    openCreateProject,
+    openCreateBoard,
     openCreateWorkspace,
     openJoinWorkspace,
   } = useUIStore();
@@ -60,7 +64,7 @@ export const Sidebar = () => {
   const navLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
     { name: 'Active Board', path: '/board', icon: KanbanSquare },
-    { name: 'Boards', path: '/projects', icon: FolderKanban },
+    { name: 'Boards', path: '/boards', icon: FolderKanban },
     { name: 'Team Members', path: '/team', icon: Users },
   ];
 
@@ -230,7 +234,7 @@ export const Sidebar = () => {
               })}
             </div>
 
-            {!sidebarCollapsed && projects.length > 0 && (
+            {!sidebarCollapsed && activeWorkspaceId && (
               <div className="space-y-1">
                 <div className="flex items-center justify-between px-3 pb-1">
                   <span className="text-[11px] font-semibold text-ink-muted uppercase tracking-wider">
@@ -238,32 +242,36 @@ export const Sidebar = () => {
                   </span>
                   <button
                     type="button"
-                    onClick={openCreateProject}
+                    onClick={openCreateBoard}
                     aria-label="Create board"
                     className="p-1 text-ink-muted hover:text-brand rounded hover:bg-subtle transition-colors"
                   >
                     <Plus className="w-3.5 h-3.5" />
                   </button>
                 </div>
-                <div className="space-y-0.5">
-                  {projects.map((proj) => (
-                    <button
-                      type="button"
-                      key={proj.id}
-                      onClick={() => {
-                        setActiveProjectId(proj.id);
-                        handleNavigate(`/projects/${proj.id}`);
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition-colors text-left ${
-                        proj.id === activeProjectId
-                          ? 'bg-subtle text-ink font-medium'
-                          : 'text-ink-secondary hover:text-ink hover:bg-subtle/60'
-                      }`}
-                    >
-                      <span className="truncate">{proj.name}</span>
-                    </button>
-                  ))}
-                </div>
+                {boards.length === 0 ? (
+                  <p className="px-3 py-1 text-xs text-ink-muted">No boards yet</p>
+                ) : (
+                  <div className="space-y-0.5">
+                    {boards.map((board) => (
+                      <button
+                        type="button"
+                        key={board.id}
+                        onClick={() => {
+                          setActiveBoardId(board.id);
+                          handleNavigate(`/boards/${board.id}`);
+                        }}
+                        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition-colors text-left ${
+                          board.id === activeBoardId
+                            ? 'bg-subtle text-ink font-medium'
+                            : 'text-ink-secondary hover:text-ink hover:bg-subtle/60'
+                        }`}
+                      >
+                        <span className="truncate">{board.name}</span>
+                      </button>
+                    ))}
+                  </div>
+                )}
               </div>
             )}
           </nav>

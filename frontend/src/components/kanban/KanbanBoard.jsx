@@ -1,75 +1,179 @@
-import React from 'react';
-import { DragDropContext } from '@hello-pangea/dnd';
+import React, { useState } from 'react';
+import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskFilters } from './TaskFilters';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
+import { useBoardStore } from '../../store/useBoardStore';
+import { useAuthStore } from '../../store/useAuthStore';
 import { useUIStore } from '../../store/useUIStore';
 import { Button } from '../common/Button';
+import { EmptyState } from '../common/EmptyState';
+import { BoardSkeleton } from '../common/Skeleton';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 import {
-  Timer,
+  FolderKanban,
   Plus,
-  Flame,
-  CheckCircle2,
-  TrendingUp,
-  SlidersHorizontal,
-  Sparkles
+  Pencil,
+  Trash2,
+  X,
+  Check,
+  Columns3,
 } from 'lucide-react';
 
 export const KanbanBoard = () => {
-  const { tasks, moveTask, activeProjectId, projects, filters } = useWorkspaceStore();
-  const { openCreateTask } = useUIStore();
+  const { user } = useAuthStore();
+  const { activeWorkspaceId, workspaces, activeWorkspaceDetails } = useWorkspaceStore();
+  const {
+    boards,
+    activeBoardId,
+    activeBoard,
+    lists,
+    cardsByList,
+    isLoadingBoards,
+    isLoadingBoardDetails,
+    boardError,
+    setActiveBoardId,
+    deleteBoard,
+    createList,
+    renameList,
+    reorderList,
+    deleteList,
+  } = useBoardStore();
+  const {
+    openCreateBoard,
+    openEditBoard,
+    openCreateWorkspace,
+    openJoinWorkspace,
+    addToast,
+  } = useUIStore();
 
-  const currentProject = projects.find(p => p.id === activeProjectId) || projects[0];
+  const [isAddingList, setIsAddingList] = useState(false);
+  const [newListName, setNewListName] = useState('');
+  const [listSubmitError, setListSubmitError] = useState('');
+  const [isCreatingList, setIsCreatingList] = useState(false);
 
-  // 1. Filter tasks for current project
-  let projectTasks = tasks.filter(t => !t.projectId || t.projectId === currentProject?.id);
+  const [listToDelete, setListToDelete] = useState(null);
+  const [isDeletingList, setIsDeletingList] = useState(false);
 
-  // 2. Apply search filter
-  if (filters.search) {
-    const q = filters.search.toLowerCase();
-    projectTasks = projectTasks.filter(t =>
-      t.title.toLowerCase().includes(q) ||
-      t.key.toLowerCase().includes(q) ||
-      (t.tags && t.tags.some(tag => tag.toLowerCase().includes(q)))
-    );
-  }
+  const [confirmDeleteBoardOpen, setConfirmDeleteBoardOpen] = useState(false);
+  const [isDeletingBoard, setIsDeletingBoard] = useState(false);
 
-  // 3. Apply assignee filter
-  if (filters.assigneeId !== 'all') {
-    projectTasks = projectTasks.filter(t => t.assigneeId === filters.assigneeId);
-  }
+  const activeWorkspace =
+    activeWorkspaceDetails || workspaces.find((w) => w.id === activeWorkspaceId) || null;
+  const currentBoard = activeBoard || boards.find((b) => b.id === activeBoardId) || null;
+  const userRole = activeWorkspace?.role;
+  const creatorId =
+    typeof currentBoard?.createdBy === 'string'
+      ? currentBoard.createdBy
+      : currentBoard?.createdBy?.id;
+  const canManageBoard =
+    userRole === 'owner' ||
+    userRole === 'admin' ||
+    Boolean(user?.id && creatorId && creatorId === user.id);
 
-  // 4. Apply priority filter
-  if (filters.priority !== 'all') {
-    projectTasks = projectTasks.filter(t => t.priority === filters.priority);
-  }
+  const totalCards = lists.reduce(
+    (sum, list) => sum + (cardsByList[list.id]?.length || 0),
+    0
+  );
 
-  // 5. Apply tag filter
-  if (filters.tag !== 'all') {
-    projectTasks = projectTasks.filter(t => t.tags && t.tags.includes(filters.tag));
-  }
+  const handleCreateList = async (e) => {
+    e.preventDefault();
+    if (!currentBoard) return;
+    const trimmed = newListName.trim();
+    if (!trimmed) {
+      setListSubmitError('List name is required');
+      return;
+    }
+    if (trimmed.length > 100) {
+      setListSubmitError('List name cannot exceed 100 characters');
+      return;
+    }
 
-  // 6. Apply sorting
-  if (filters.sortBy === 'priority') {
-    const weights = { urgent: 4, high: 3, medium: 2, low: 1 };
-    projectTasks.sort((a, b) => (weights[b.priority] || 0) - (weights[a.priority] || 0));
-  } else if (filters.sortBy === 'dueDate') {
-    projectTasks.sort((a, b) => new Date(a.dueDate || '9999-12-31') - new Date(b.dueDate || '9999-12-31'));
-  } else if (filters.sortBy === 'points') {
-    projectTasks.sort((a, b) => (b.storyPoints || 0) - (a.storyPoints || 0));
-  } else if (filters.sortBy === 'newest') {
-    projectTasks.sort((a, b) => new Date(b.createdAt || 0) - new Date(a.createdAt || 0));
-  }
+    setListSubmitError('');
+    setIsCreatingList(true);
+    const result = await createList(currentBoard.id, { name: trimmed });
+    setIsCreatingList(false);
 
-  const columns = [
-    { id: 'todo', title: 'To Do' },
-    { id: 'in_progress', title: 'In Progress' },
-    { id: 'in_review', title: 'In Review' },
-    { id: 'completed', title: 'Completed' },
-  ];
+    if (!result.success) {
+      setListSubmitError(result.error || 'Failed to create list');
+      return;
+    }
+
+    setNewListName('');
+    setIsAddingList(false);
+  };
+
+  const handleRenameList = async (listId, nextName) => {
+    const result = await renameList(listId, nextName);
+    if (!result.success) {
+      addToast({
+        type: 'error',
+        title: 'Unable to rename list',
+        message: result.error,
+      });
+    }
+    return result;
+  };
+
+  const handleReorderList = async (listId, targetIndex) => {
+    const result = await reorderList(listId, targetIndex);
+    if (!result.success) {
+      addToast({
+        type: 'error',
+        title: 'Unable to reorder list',
+        message: result.error,
+      });
+    }
+  };
+
+  const handleConfirmDeleteList = async () => {
+    if (!listToDelete) return;
+    setIsDeletingList(true);
+    const result = await deleteList(listToDelete.id);
+    setIsDeletingList(false);
+
+    if (!result.success) {
+      addToast({
+        type: 'error',
+        title: 'Unable to delete list',
+        message: result.error,
+      });
+      return;
+    }
+
+    addToast({
+      type: 'success',
+      title: 'List deleted',
+      message: `${listToDelete.name} and its cards were deleted.`,
+    });
+    setListToDelete(null);
+  };
+
+  const handleConfirmDeleteBoard = async () => {
+    if (!currentBoard) return;
+    setIsDeletingBoard(true);
+    const result = await deleteBoard(currentBoard.id);
+    setIsDeletingBoard(false);
+
+    if (!result.success) {
+      addToast({
+        type: 'error',
+        title: 'Unable to delete board',
+        message: result.error,
+      });
+      return;
+    }
+
+    addToast({
+      type: 'success',
+      title: 'Board deleted',
+      message: `${currentBoard.name} was deleted.`,
+    });
+    setConfirmDeleteBoardOpen(false);
+  };
 
   const handleDragEnd = (result) => {
-    const { destination, source, draggableId } = result;
+    const { destination, source, draggableId, type } = result;
     if (!destination) return;
     if (
       destination.droppableId === source.droppableId &&
@@ -78,109 +182,248 @@ export const KanbanBoard = () => {
       return;
     }
 
-    moveTask(draggableId, destination.droppableId, destination.index);
+    if (type === 'LIST') {
+      const listId = draggableId.startsWith('list:')
+        ? draggableId.slice(5)
+        : draggableId;
+      handleReorderList(listId, destination.index);
+    }
   };
 
-  // Metrics
-  const totalTasks = projectTasks.length;
-  const completedTasks = projectTasks.filter(t => t.status === 'completed').length;
-  const progressPercent = totalTasks > 0 ? Math.round((completedTasks / totalTasks) * 100) : 0;
-  const totalPoints = projectTasks.reduce((acc, t) => acc + (t.storyPoints || 0), 0);
-  const completedPoints = projectTasks
-    .filter(t => t.status === 'completed')
-    .reduce((acc, t) => acc + (t.storyPoints || 0), 0);
+  if (!activeWorkspaceId) {
+    return (
+      <EmptyState
+        icon={FolderKanban}
+        title="No active workspace"
+        description="Create or join a workspace before opening Kanban boards."
+        actionLabel="Create Workspace"
+        onAction={openCreateWorkspace}
+        secondaryActionLabel="Join with Invite Code"
+        onSecondaryAction={openJoinWorkspace}
+      />
+    );
+  }
+
+  if (isLoadingBoards || (isLoadingBoardDetails && lists.length === 0 && currentBoard)) {
+    return <BoardSkeleton />;
+  }
+
+  if (boards.length === 0) {
+    return (
+      <EmptyState
+        icon={Columns3}
+        title="No boards in this workspace yet"
+        description="Create a Kanban board to configure dynamic workflow lists and organize cards."
+        actionLabel="Create Board"
+        onAction={openCreateBoard}
+      />
+    );
+  }
+
+  if (!currentBoard) {
+    return (
+      <EmptyState
+        icon={Columns3}
+        title="Select a board"
+        description="Pick a board from the sidebar or create a new one."
+        actionLabel="Create Board"
+        onAction={openCreateBoard}
+      />
+    );
+  }
 
   return (
     <div className="space-y-4">
-      {/* Sprint Header & Velocity Banner */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-gradient-to-r from-[#0f172a] via-[#111827] to-[#1e1b4b] border border-slate-800 shadow-md">
-        <div className="flex flex-wrap items-center justify-between gap-4">
-          <div className="space-y-1">
-            <div className="flex items-center gap-3">
-              <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-                {currentProject?.name}
+      {/* Board Header */}
+      <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-sm">
+        <div className="flex flex-wrap items-start justify-between gap-4">
+          <div className="space-y-1.5 min-w-0 flex-1">
+            <div className="flex flex-wrap items-center gap-3">
+              <h1 className="text-xl sm:text-2xl font-bold text-ink tracking-tight truncate">
+                {currentBoard.name}
               </h1>
-              <span className="inline-flex items-center gap-1.5 px-2.5 py-0.5 rounded-full bg-emerald-950/60 text-emerald-400 text-xs font-medium border border-emerald-800/40">
-                <span className="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-pulse" />
-                Active Run
-              </span>
-              <span className="hidden sm:inline-flex items-center gap-1 px-2 py-0.5 rounded bg-slate-800/80 text-slate-300 text-xs font-mono border border-slate-700/60">
-                <Timer className="w-3.5 h-3.5 text-slate-400" />
-                4 days left
+              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-subtle text-ink-secondary border border-line">
+                {lists.length} {lists.length === 1 ? 'list' : 'lists'} • {totalCards}{' '}
+                {totalCards === 1 ? 'card' : 'cards'}
               </span>
             </div>
-            <p className="text-xs sm:text-sm text-slate-400 max-w-2xl">
-              <span className="text-indigo-400 font-semibold">Sprint Goal: </span>
-              {currentProject?.description}
-            </p>
+            {currentBoard.description && (
+              <p className="text-xs sm:text-sm text-ink-secondary max-w-2xl">
+                {currentBoard.description}
+              </p>
+            )}
           </div>
 
-          {/* Quick Actions */}
-          <div className="flex items-center gap-2.5">
-            <Button
-              variant="primary"
-              size="sm"
-              icon={Plus}
-              onClick={() => openCreateTask('todo')}
-              className="shadow-sm"
-            >
-              <span>New Issue</span>
-              <kbd className="ml-1 text-[10px] font-mono bg-indigo-700/80 px-1 rounded text-indigo-100">C</kbd>
-            </Button>
-          </div>
-        </div>
+          <div className="flex flex-wrap items-center gap-2">
+            {boards.length > 1 && (
+              <select
+                aria-label="Switch active board"
+                value={currentBoard.id}
+                onChange={(e) => setActiveBoardId(e.target.value)}
+                className="bg-subtle border border-line-strong rounded-lg px-2.5 py-1.5 text-xs text-ink focus:outline-none focus:border-brand cursor-pointer"
+              >
+                {boards.map((b) => (
+                  <option key={b.id} value={b.id}>
+                    {b.name}
+                  </option>
+                ))}
+              </select>
+            )}
 
-        {/* Sprint Burn Progress Bar */}
-        <div className="mt-4 pt-3 border-t border-slate-800/80 flex flex-wrap items-center justify-between gap-4">
-          <div className="flex items-center gap-4 flex-1 min-w-[260px] max-w-lg">
-            <div className="w-full space-y-1">
-              <div className="flex items-center justify-between text-xs text-slate-400 font-mono">
-                <span>Velocity Completion</span>
-                <span className="text-indigo-400 font-bold">{progressPercent}% ({completedPoints}/{totalPoints} pts)</span>
-              </div>
-              <div className="w-full h-2 bg-slate-800 rounded-full overflow-hidden">
-                <div
-                  className="h-full bg-gradient-to-r from-indigo-500 to-emerald-400 rounded-full transition-all duration-500"
-                  style={{ width: `${progressPercent}%` }}
-                />
-              </div>
-            </div>
-          </div>
-
-          <div className="flex items-center gap-4 text-xs font-mono text-slate-400">
-            <div>
-              <span className="text-slate-500 mr-1.5">TASKS</span>
-              <span className="text-slate-200 font-bold">{completedTasks}/{totalTasks}</span>
-            </div>
-            <div className="w-px h-4 bg-slate-800" />
-            <div>
-              <span className="text-slate-500 mr-1.5">POINTS</span>
-              <span className="text-emerald-400 font-bold">{completedPoints}</span>
-              <span className="text-slate-500"> / {totalPoints}</span>
-            </div>
+            {canManageBoard && (
+              <>
+                <Button
+                  variant="secondary"
+                  size="sm"
+                  icon={Pencil}
+                  onClick={() => openEditBoard(currentBoard)}
+                >
+                  Edit Board
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  icon={Trash2}
+                  className="text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
+                  onClick={() => setConfirmDeleteBoardOpen(true)}
+                >
+                  Delete
+                </Button>
+              </>
+            )}
           </div>
         </div>
       </div>
 
+      {boardError && (
+        <div
+          role="alert"
+          className="rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-xs text-rose-500"
+        >
+          {boardError}
+        </div>
+      )}
+
       {/* Filter Toolbar */}
       <TaskFilters />
 
-      {/* Kanban Drag and Drop Columns */}
+      {/* Dynamic Lists Canvas */}
       <DragDropContext onDragEnd={handleDragEnd}>
-        <div className="flex gap-4 overflow-x-auto pb-6 pt-1">
-          {columns.map(column => {
-            const columnTasks = projectTasks.filter(t => t.status === column.id);
-            return (
-              <KanbanColumn
-                key={column.id}
-                column={column}
-                tasks={columnTasks}
-              />
-            );
-          })}
-        </div>
+        <Droppable droppableId="board-lists" direction="horizontal" type="LIST">
+          {(provided) => (
+            <div
+              ref={provided.innerRef}
+              {...provided.droppableProps}
+              className="flex items-start gap-4 overflow-x-auto pb-6 pt-1"
+            >
+              {lists.map((list, idx) => (
+                <KanbanColumn
+                  key={list.id}
+                  list={list}
+                  index={idx}
+                  totalLists={lists.length}
+                  cards={cardsByList[list.id] || []}
+                  onRenameList={handleRenameList}
+                  onMoveListLeft={() => handleReorderList(list.id, idx - 1)}
+                  onMoveListRight={() => handleReorderList(list.id, idx + 1)}
+                  onRequestDeleteList={(target) => setListToDelete(target)}
+                />
+              ))}
+              {provided.placeholder}
+
+              {/* Add List Composer */}
+              <div className="w-[280px] flex-shrink-0">
+                {isAddingList ? (
+                  <form
+                    onSubmit={handleCreateList}
+                    className="p-3 rounded-xl bg-surface border border-line-strong shadow-sm space-y-2.5"
+                  >
+                    <input
+                      type="text"
+                      value={newListName}
+                      onChange={(e) => {
+                        setNewListName(e.target.value);
+                        if (listSubmitError) setListSubmitError('');
+                      }}
+                      onKeyDown={(e) => {
+                        if (e.key === 'Escape') {
+                          setIsAddingList(false);
+                          setNewListName('');
+                          setListSubmitError('');
+                        }
+                      }}
+                      placeholder="Enter list name (e.g. Backlog)"
+                      aria-label="New list name"
+                      autoFocus
+                      className="w-full rounded-lg bg-subtle border border-line-strong px-3 py-1.5 text-sm text-ink placeholder-ink-muted focus:outline-none focus:border-brand"
+                    />
+                    {listSubmitError && (
+                      <p role="alert" className="text-xs text-rose-500">
+                        {listSubmitError}
+                      </p>
+                    )}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        type="submit"
+                        variant="primary"
+                        size="sm"
+                        icon={Check}
+                        loading={isCreatingList}
+                      >
+                        Add List
+                      </Button>
+                      <Button
+                        type="button"
+                        variant="ghost"
+                        size="sm"
+                        icon={X}
+                        onClick={() => {
+                          setIsAddingList(false);
+                          setNewListName('');
+                          setListSubmitError('');
+                        }}
+                      >
+                        Cancel
+                      </Button>
+                    </div>
+                  </form>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => setIsAddingList(true)}
+                    className="w-full flex items-center justify-center gap-2 px-4 py-3 rounded-xl border border-dashed border-line-strong bg-surface/60 hover:bg-surface text-xs font-semibold text-ink-secondary hover:text-ink transition-colors"
+                  >
+                    <Plus className="w-4 h-4" />
+                    <span>{lists.length === 0 ? 'Add your first list' : 'Add List'}</span>
+                  </button>
+                )}
+              </div>
+            </div>
+          )}
+        </Droppable>
       </DragDropContext>
+
+      <ConfirmDialog
+        isOpen={Boolean(listToDelete)}
+        onClose={() => setListToDelete(null)}
+        onConfirm={handleConfirmDeleteList}
+        loading={isDeletingList}
+        variant="danger"
+        title={`Delete ${listToDelete?.name || 'list'}?`}
+        description="Deleting this list will permanently delete every card inside it."
+        confirmLabel="Delete List"
+      />
+
+      <ConfirmDialog
+        isOpen={confirmDeleteBoardOpen}
+        onClose={() => setConfirmDeleteBoardOpen(false)}
+        onConfirm={handleConfirmDeleteBoard}
+        loading={isDeletingBoard}
+        variant="danger"
+        title={`Delete ${currentBoard.name}?`}
+        description="Deleting this board will permanently delete all lists and cards inside it."
+        confirmLabel="Delete Board"
+      />
     </div>
   );
 };
-
