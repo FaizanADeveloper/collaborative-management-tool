@@ -106,12 +106,25 @@ Tracks verified implementation milestones, testing, builds, and commit history f
   - Frontend tests (`npm.cmd --prefix frontend test`): 9 test files, 36/36 tests passed.
   - Production build (`npm.cmd --prefix frontend run build`): passed (`428.25 kB` main chunk, built in 3.60s).
   - Backend unit tests (`npm.cmd --prefix backend test`): 9 test suites, 183/183 passed.
-  - Live MongoDB Atlas check: Express backend startup against live Atlas could not reach the cluster from this session's current IP (`Atlas IP whitelist` error); therefore live Atlas E2E and optional Week 3 Socket.IO synchronization were deferred rather than destabilizing verified Week 1-2 deliverables or introducing unverified backend changes.
+  - Note: Initial live MongoDB Atlas connection was blocked prior to IP whitelisting.
+- **Commit:**
+- `658b7bd` — `test(frontend): add component and API integration coverage`
+
+**Milestone 9 (Live Full-Stack Integration Verification Against Express & MongoDB Atlas):**
+- **Verified (`2026-11-11`):**
+  - Recovered `frontend` working tree cleanly at `658b7bd` (`backend` unchanged at `36b309d`, `main` unchanged at `f0377b6`, `backend/.env` untouched).
+  - Confirmed real backend startup (`node src/server.js` -> port `5000`), `/api/health` (`database: "connected"`), Vite dev server (`port 3000` proxying `/api` to `http://localhost:5000`), CORS (`CLIENT_URL=http://localhost:3000`), and `Authorization: Bearer <token>` header flow (`74` authenticated requests observed).
+  - Executed real headless Chrome end-to-end verification against live Express, Vite, and MongoDB Atlas covering unauthenticated route redirect (`/dashboard -> /login`), signup, hard reload session hydration (`GET /api/auth/me`), sign-out + deep-link redirect restoration, wrong-password 401 error UI, workspace creation & collaborator invite join + role restriction check (`403` on non-owner delete), board creation, list create/rename/reorder/`ConfirmDialog` delete, card create/edit/urgent priority/`2026-12-20` due date/member assignment/cross-list move/midpoint reorder, hard reload persistence verified in DOM and live API responses, and light/dark theme switching with `0` console errors, `0` uncaught exceptions, and `0` HTTP 5xx responses.
+  - Verified pre-existing Atlas baseline preservation (`users: 1`, `workspaces: 2`, `boards: 0`, `lists: 0`, `cards: 0` before and after scoped teardown).
+- **Regression Suite (`2026-11-11`):**
+  - Frontend tests (`npm.cmd --prefix frontend test`): 9 test files, 36/36 tests passed.
+  - Frontend production build (`npm.cmd --prefix frontend run build`): passed (`1.23s`).
+  - Backend unit tests (`npm.cmd --prefix backend test`): 9 test suites, 183/183 tests passed.
+  - Backend Atlas integration tests (`npm.cmd --prefix backend run test:integration`): 2 test suites, 12/12 tests passed.
 
 **Remaining work:**
-- Re-whitelist the active developer IP in MongoDB Atlas Network Access and execute live Express + Atlas end-to-end smoke checks (`npm.cmd --prefix backend run test:integration` and live browser run against `backend/src/server.js`).
-- Week 3 (optional): Authenticated Socket.IO real-time board synchronization and multi-session live convergence.
+- Week 3 (optional, deferred): Authenticated Socket.IO real-time board synchronization and multi-session convergence.
 - Week 4 (deferred): Redis scaling, full-text search indexing, notification service, and production deployment pipelines.
 
 **Next session:**
-- Update MongoDB Atlas IP whitelist, verify live end-to-end persistence against `backend/src/server.js`, and evaluate Week 3 authenticated Socket.IO board room events.
+- Evaluate and implement Week 3 authenticated Socket.IO real-time board room synchronization.
