@@ -26,33 +26,15 @@ const writeSavedWorkspaceId = (id) => {
 
 let contextRequestCounter = 0;
 
-const initialTransitionalState = {
-  // Transitional empty collections until Milestones 5-7 migrate Board/List/Card views to useBoardStore
-  projects: [],
-  activeProjectId: null,
-  tasks: [],
-  activities: [],
-  filters: {
-    search: '',
-    priority: 'all',
-    assigneeId: 'all',
-    tag: 'all',
-    sortBy: 'default',
-  },
-};
-
 export const useWorkspaceStore = create((set, get) => ({
   workspaces: [],
   activeWorkspaceId: readSavedWorkspaceId(),
   activeWorkspaceDetails: null,
   members: [],
-  users: [],
   isLoadingWorkspaces: false,
   isLoadingMembers: false,
   hasLoadedWorkspaces: false,
   workspaceError: null,
-
-  ...initialTransitionalState,
 
   fetchWorkspaces: async () => {
     set({ isLoadingWorkspaces: true, workspaceError: null });
@@ -340,31 +322,12 @@ export const useWorkspaceStore = create((set, get) => ({
       activeWorkspaceId: null,
       activeWorkspaceDetails: null,
       members: [],
-      users: [],
       isLoadingWorkspaces: false,
       isLoadingMembers: false,
       hasLoadedWorkspaces: false,
       workspaceError: null,
-      ...initialTransitionalState,
     });
   },
-
-  // Transitional helpers kept no-op/filter-only until Milestones 5-7 migrate consumers
-  setActiveProjectId: (id) => set({ activeProjectId: id }),
-  setFilter: (key, value) =>
-    set((state) => ({
-      filters: { ...state.filters, [key]: value },
-    })),
-  resetFilters: () =>
-    set({
-      filters: {
-        search: '',
-        priority: 'all',
-        assigneeId: 'all',
-        tag: 'all',
-        sortBy: 'default',
-      },
-    }),
 }));
 
 registerLogoutCleanup(() => {

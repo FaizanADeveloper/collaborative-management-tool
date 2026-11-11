@@ -78,21 +78,6 @@ export const useUIStore = create((set, get) => ({
   openCardDetails: (cardId) => set({ selectedCardId: cardId }),
   closeCardDetails: () => set({ selectedCardId: null }),
 
-  // Compatibility aliases while migrating legacy mock modals/pages across milestones
-  isCreateTaskOpen: false,
-  defaultTaskStatus: 'todo',
-  openCreateTask: (defaultStatus = 'todo') =>
-    set({ isCreateTaskOpen: true, defaultTaskStatus: defaultStatus }),
-  closeCreateTask: () => set({ isCreateTaskOpen: false }),
-
-  isCreateProjectOpen: false,
-  openCreateProject: () => set({ isCreateProjectOpen: true }),
-  closeCreateProject: () => set({ isCreateProjectOpen: false }),
-
-  selectedTaskId: null,
-  openTaskDetails: (taskId) => set({ selectedTaskId: taskId }),
-  closeTaskDetails: () => set({ selectedTaskId: null }),
-
   toasts: [],
   addToast: ({ type = 'info', title, message, duration = 4000 }) => {
     const id = `toast-${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;

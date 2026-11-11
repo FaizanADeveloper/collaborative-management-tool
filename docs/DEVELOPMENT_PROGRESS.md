@@ -83,10 +83,21 @@ Tracks verified implementation milestones, testing, builds, and commit history f
 - **Testing & Build:**
   - Frontend tests (`npm.cmd --prefix frontend test`): 7 test files, 29/29 tests passed (`CardAndDnd.test.jsx` added covering card creation, editing, filtering, deletion, midpoint move, and failure rollback).
   - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 2.15s).
+- **Commit:**
+  - `88704ed` — `feat(frontend): integrate card management and persistent drag and drop`
+
+**Milestone 7 (Real-Data Dashboard, Command Palette & Mock Retirement):**
+- **Completed:**
+  - Refactored `DashboardPage.jsx`, `StatCard.jsx`, `TaskDistributionChart.jsx` (Priority Breakdown), `AssignedTasksList.jsx`, and `ProjectProgressCards.jsx` (Workspace Boards), and added `CardsByListChart.jsx` backed exclusively by live workspace, board, list, and card state.
+  - Updated `CommandPalette.jsx` with dual-theme styling, keyboard (`ArrowUp`/`ArrowDown`/`Enter`/`Escape`) navigation, real search across cards, boards, members, and active actions, removing dead `/backlog` and `/activity` routes.
+  - Retired obsolete mock prototype files (`mockData.js`, `storageService.js`, `useNotificationStore.js`, `BurndownChart.jsx`, `VelocityChart.jsx`, `RecentActivityFeed.jsx`, `NotificationsDropdown.jsx`, `ProjectCreateModal.jsx`, `ActivityPage.jsx`, `BacklogPage.jsx`, `ForgotPasswordPage.jsx`) and removed transitional compatibility aliases from `useUIStore.js` and `useWorkspaceStore.js`.
+- **Testing & Build:**
+  - Frontend tests (`npm.cmd --prefix frontend test`): 8 test files, 32/32 tests passed (`DashboardAndCommandPalette.test.jsx` added).
+  - Production build (`npm.cmd --prefix frontend run build`): passed (`428.24 kB` main chunk, built in 1.96s).
 
 **Remaining work:**
-- Refactor Dashboard analytics, Command Palette, and responsive states around real MongoDB Atlas data and retire remaining legacy mock references.
-- Add comprehensive frontend component/integration coverage, run end-to-end live verification, and evaluate scoped Week 3 real-time sync.
+- Run full end-to-end live verification against the Express + MongoDB Atlas backend (auth, workspace, board, list, card, drag-and-drop reload persistence) with clean scoped test data teardown.
+- Add edge-case frontend integration tests (network/API failure banners, mobile drawer behavior, full multi-entity E2E store flows) and evaluate scoped Week 3 real-time sync.
 
 **Next session:**
-- Implement Milestone 7 (Real-data Dashboard analytics, updated Command Palette, mock-store cleanup, and responsive dual-theme UX verification).
+- Implement Milestone 8 (Integration & failure-state test coverage plus live end-to-end verification).

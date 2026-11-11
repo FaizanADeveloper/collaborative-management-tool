@@ -1,94 +1,67 @@
 import React from 'react';
-import {
-  ResponsiveContainer,
-  PieChart,
-  Pie,
-  Cell,
-  Tooltip,
-} from 'recharts';
-import { useWorkspaceStore } from '../../store/useWorkspaceStore';
+import { useBoardStore } from '../../store/useBoardStore';
+import { Layers } from 'lucide-react';
+
+const PRIORITY_BUCKETS = [
+  { key: 'urgent', label: 'Urgent', barClass: 'bg-rose-500', dotClass: 'bg-rose-500' },
+  { key: 'high', label: 'High', barClass: 'bg-amber-500', dotClass: 'bg-amber-500' },
+  { key: 'medium', label: 'Medium', barClass: 'bg-indigo-500', dotClass: 'bg-indigo-500' },
+  { key: 'low', label: 'Low', barClass: 'bg-slate-400', dotClass: 'bg-slate-400' },
+];
 
 export const TaskDistributionChart = () => {
-  const { tasks } = useWorkspaceStore();
-
-  const counts = {
-    todo: tasks.filter(t => t.status === 'todo').length,
-    in_progress: tasks.filter(t => t.status === 'in_progress').length,
-    in_review: tasks.filter(t => t.status === 'in_review').length,
-    completed: tasks.filter(t => t.status === 'completed').length,
-  };
-
-  const data = [
-    { name: 'To Do', value: counts.todo, color: '#94a3b8' },
-    { name: 'In Progress', value: counts.in_progress, color: '#6366f1' },
-    { name: 'In Review', value: counts.in_review, color: '#f59e0b' },
-    { name: 'Completed', value: counts.completed, color: '#10b981' },
-  ];
-
-  const total = tasks.length || 1;
-
-  const CustomTooltip = ({ active, payload }) => {
-    if (active && payload && payload.length) {
-      const item = payload[0];
-      const pct = Math.round((item.value / total) * 100);
-      return (
-        <div className="rounded-lg bg-slate-900 border border-slate-700 p-2 shadow-xl text-xs space-y-0.5">
-          <p className="font-semibold text-slate-200">{item.name}</p>
-          <p className="text-slate-400">
-            {item.value} tasks ({pct}%)
-          </p>
-        </div>
-      );
-    }
-    return null;
-  };
+  const { cardsByList, activeBoard } = useBoardStore();
+  const cards = Object.values(cardsByList).flat();
+  const total = cards.length;
 
   return (
-    <div className="rounded-xl bg-slate-900/60 border border-slate-800/80 p-5 shadow-sm flex flex-col justify-between">
-      <div>
-        <h3 className="text-sm font-semibold text-slate-100">
-          Status Distribution
-        </h3>
-        <p className="text-xs text-slate-400 mt-0.5">
-          Breakdown of all active workspace issues
-        </p>
-      </div>
-
-      <div className="h-44 w-full relative my-2">
-        <ResponsiveContainer width="100%" height="100%">
-          <PieChart>
-            <Pie
-              data={data}
-              innerRadius={50}
-              outerRadius={70}
-              paddingAngle={4}
-              dataKey="value"
-            >
-              {data.map((entry, index) => (
-                <Cell key={`cell-${index}`} fill={entry.color} stroke="#0f172a" strokeWidth={2} />
-              ))}
-            </Pie>
-            <Tooltip content={<CustomTooltip />} />
-          </PieChart>
-        </ResponsiveContainer>
-        <div className="absolute inset-0 flex flex-col items-center justify-center pointer-events-none">
-          <span className="text-2xl font-bold text-white font-mono">{tasks.length}</span>
-          <span className="text-[10px] text-slate-400 uppercase tracking-wider">Total</span>
+    <div className="rounded-xl bg-surface border border-line p-5 shadow-sm flex flex-col justify-between h-full">
+      <div className="flex items-start justify-between gap-2 mb-4">
+        <div>
+          <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+            <Layers className="w-4 h-4 text-brand" />
+            <span>Priority Breakdown</span>
+          </h3>
+          <p className="text-xs text-ink-muted mt-0.5">
+            {activeBoard ? `Cards on ${activeBoard.name}` : 'Select a board to view breakdown'}
+          </p>
         </div>
+        <span className="text-xs font-mono font-semibold text-ink-secondary px-2 py-0.5 rounded bg-subtle border border-line">
+          {total} {total === 1 ? 'card' : 'cards'}
+        </span>
       </div>
 
-      <div className="grid grid-cols-2 gap-2 pt-2 border-t border-slate-800/80 text-xs">
-        {data.map((item) => (
-          <div key={item.name} className="flex items-center justify-between">
-            <div className="flex items-center gap-1.5 min-w-0">
-              <span className="w-2 h-2 rounded-full flex-shrink-0" style={{ backgroundColor: item.color }} />
-              <span className="text-slate-300 truncate">{item.name}</span>
-            </div>
-            <span className="font-mono text-slate-400 font-medium">{item.value}</span>
-          </div>
-        ))}
-      </div>
+      {total === 0 ? (
+        <p className="text-xs text-ink-muted py-8 text-center">
+          No cards on the active board yet.
+        </p>
+      ) : (
+        <div className="space-y-3">
+          {PRIORITY_BUCKETS.map((bucket) => {
+            const count = cards.filter((c) => (c.priority || 'medium') === bucket.key).length;
+            const pct = Math.round((count / total) * 100);
+            return (
+              <div key={bucket.key} className="space-y-1">
+                <div className="flex items-center justify-between text-xs">
+                  <div className="flex items-center gap-2">
+                    <span className={`w-2 h-2 rounded-full ${bucket.dotClass}`} />
+                    <span className="font-medium text-ink-secondary">{bucket.label}</span>
+                  </div>
+                  <span className="font-mono text-ink-muted">
+                    {count} ({pct}%)
+                  </span>
+                </div>
+                <div className="w-full h-2 rounded-full bg-subtle overflow-hidden">
+                  <div
+                    className={`h-full rounded-full transition-all duration-300 ${bucket.barClass}`}
+                    style={{ width: `${pct}%` }}
+                  />
+                </div>
+              </div>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
-

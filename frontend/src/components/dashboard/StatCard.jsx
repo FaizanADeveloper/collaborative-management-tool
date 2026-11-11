@@ -1,92 +1,51 @@
 import React from 'react';
-import { TrendingUp, TrendingDown } from 'lucide-react';
 
 export const StatCard = ({
   title,
   value,
   subtitle,
   icon: Icon,
-  trend,
-  trendDirection = 'up', // 'up' | 'down'
   color = 'indigo',
 }) => {
   const colorMaps = {
-    indigo: {
-      bg: 'bg-indigo-950/40',
-      border: 'border-indigo-800/40',
-      text: 'text-indigo-400',
-      gradient: 'from-indigo-600/20 to-transparent',
-    },
-    emerald: {
-      bg: 'bg-emerald-950/40',
-      border: 'border-emerald-800/40',
-      text: 'text-emerald-400',
-      gradient: 'from-emerald-600/20 to-transparent',
-    },
-    amber: {
-      bg: 'bg-amber-950/40',
-      border: 'border-amber-800/40',
-      text: 'text-amber-400',
-      gradient: 'from-amber-600/20 to-transparent',
-    },
-    sky: {
-      bg: 'bg-sky-950/40',
-      border: 'border-sky-800/40',
-      text: 'text-sky-400',
-      gradient: 'from-sky-600/20 to-transparent',
-    },
-    rose: {
-      bg: 'bg-rose-950/40',
-      border: 'border-rose-800/40',
-      text: 'text-rose-400',
-      gradient: 'from-rose-600/20 to-transparent',
-    }
+    indigo: 'bg-brand-subtle text-brand border-brand/20',
+    emerald:
+      'bg-emerald-50 text-emerald-600 border-emerald-200 dark:bg-emerald-950/50 dark:text-emerald-400 dark:border-emerald-800/40',
+    amber:
+      'bg-amber-50 text-amber-600 border-amber-200 dark:bg-amber-950/50 dark:text-amber-400 dark:border-amber-800/40',
+    sky:
+      'bg-sky-50 text-sky-600 border-sky-200 dark:bg-sky-950/50 dark:text-sky-400 dark:border-sky-800/40',
+    rose:
+      'bg-rose-50 text-rose-600 border-rose-200 dark:bg-rose-950/50 dark:text-rose-400 dark:border-rose-800/40',
   };
 
-  const scheme = colorMaps[color] || colorMaps.indigo;
+  const iconStyle = colorMaps[color] || colorMaps.indigo;
 
   return (
-    <div className={`relative overflow-hidden rounded-xl bg-slate-900/70 border ${scheme.border} p-5 shadow-sm transition-all hover:scale-[1.01]`}>
-      <div className={`absolute top-0 right-0 w-32 h-32 bg-gradient-to-bl ${scheme.gradient} rounded-full blur-2xl pointer-events-none -mr-10 -mt-10`} />
-
-      <div className="flex items-start justify-between">
-        <div>
-          <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider block">
+    <div className="rounded-xl bg-surface border border-line p-5 shadow-sm transition-colors hover:border-line-strong">
+      <div className="flex items-start justify-between gap-3">
+        <div className="min-w-0">
+          <span className="text-xs font-medium text-ink-muted uppercase tracking-wider block">
             {title}
           </span>
-          <div className="mt-2 flex items-baseline gap-2">
-            <span className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
+          <div className="mt-2">
+            <span className="text-2xl sm:text-3xl font-bold text-ink tracking-tight">
               {value}
             </span>
-            {trend && (
-              <span
-                className={`inline-flex items-center text-xs font-semibold ${
-                  trendDirection === 'up' ? 'text-emerald-400' : 'text-rose-400'
-                }`}
-              >
-                {trendDirection === 'up' ? (
-                  <TrendingUp className="w-3.5 h-3.5 mr-0.5" />
-                ) : (
-                  <TrendingDown className="w-3.5 h-3.5 mr-0.5" />
-                )}
-                {trend}
-              </span>
-            )}
           </div>
           {subtitle && (
-            <p className="mt-1 text-xs text-slate-400">
+            <p className="mt-1 text-xs text-ink-secondary truncate">
               {subtitle}
             </p>
           )}
         </div>
 
         {Icon && (
-          <div className={`p-2.5 rounded-xl ${scheme.bg} ${scheme.text} border ${scheme.border}`}>
-            <Icon className="w-5 h-5" />
+          <div className={`p-2.5 rounded-xl border flex-shrink-0 ${iconStyle}`}>
+            <Icon className="w-5 h-5" aria-hidden="true" />
           </div>
         )}
       </div>
     </div>
   );
 };
-

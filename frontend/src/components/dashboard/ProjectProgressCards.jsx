@@ -1,108 +1,109 @@
 import React from 'react';
-import { useWorkspaceStore } from '../../store/useWorkspaceStore';
-import { AvatarGroup } from '../common/Avatar';
-import { ArrowUpRight, FolderKanban, Star } from 'lucide-react';
 import { useNavigate } from 'react-router-dom';
+import { useBoardStore } from '../../store/useBoardStore';
+import { useUIStore } from '../../store/useUIStore';
+import { FolderKanban, ArrowRight, Plus, Calendar } from 'lucide-react';
+import { Button } from '../common/Button';
 
 export const ProjectProgressCards = () => {
-  const { projects, users, setActiveProjectId, toggleProjectStar } = useWorkspaceStore();
+  const { boards, activeBoardId, lists, cardsByList, setActiveBoardId } = useBoardStore();
+  const { openCreateBoard } = useUIStore();
   const navigate = useNavigate();
 
+  const activeBoardCardCount = Object.values(cardsByList).reduce(
+    (sum, listCards) => sum + (listCards?.length || 0),
+    0
+  );
+
   return (
-    <div className="rounded-xl bg-slate-900/60 border border-slate-800/80 p-5 shadow-sm">
+    <div className="rounded-xl bg-surface border border-line p-5 shadow-sm">
       <div className="flex items-center justify-between mb-4">
         <div>
-          <h3 className="text-sm font-semibold text-slate-100 flex items-center gap-2">
-            <FolderKanban className="w-4 h-4 text-indigo-400" />
-            <span>Active Initiatives Overview</span>
+          <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
+            <FolderKanban className="w-4 h-4 text-brand" />
+            <span>Workspace Boards</span>
           </h3>
-          <p className="text-xs text-slate-400 mt-0.5">
-            Key deliverables, progress completion and team leads
+          <p className="text-xs text-ink-muted mt-0.5">
+            Jump directly into any board in your current workspace
           </p>
         </div>
 
         <button
-          onClick={() => navigate('/projects')}
-          className="text-xs text-indigo-400 hover:text-indigo-300 font-medium transition-colors"
+          type="button"
+          onClick={() => navigate('/boards')}
+          className="text-xs text-brand hover:underline font-medium"
         >
-          All initiatives
+          All boards
         </button>
       </div>
 
-      <div className="grid grid-cols-1 md:grid-cols-2 gap-3.5">
-        {projects.map((proj) => {
-          const team = users.filter(u => (proj.teamIds || []).includes(u.id));
-          const lead = users.find(u => u.id === proj.leadId);
+      {boards.length === 0 ? (
+        <div className="py-8 text-center space-y-3 border border-dashed border-line rounded-xl">
+          <p className="text-xs text-ink-muted">No boards created in this workspace yet.</p>
+          <Button variant="primary" size="sm" icon={Plus} onClick={openCreateBoard}>
+            Create First Board
+          </Button>
+        </div>
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-3.5">
+          {boards.map((board) => {
+            const isActive = board.id === activeBoardId;
+            const createdLabel = board.createdAt
+              ? new Date(board.createdAt).toLocaleDateString()
+              : null;
 
-          return (
-            <div
-              key={proj.id}
-              onClick={() => {
-                setActiveProjectId(proj.id);
-                navigate(`/projects/${proj.id}`);
-              }}
-              className="p-4 rounded-xl bg-slate-800/40 hover:bg-slate-800/70 border border-slate-700/50 hover:border-slate-600 transition-all cursor-pointer group flex flex-col justify-between"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-2 mb-2">
-                  <div className="flex items-center gap-2">
-                    <span
-                      className="w-3 h-3 rounded-full flex-shrink-0"
-                      style={{ backgroundColor: proj.color }}
-                    />
-                    <h4 className="text-sm font-semibold text-slate-200 group-hover:text-white truncate">
-                      {proj.name}
+            return (
+              <button
+                type="button"
+                key={board.id}
+                onClick={() => {
+                  setActiveBoardId(board.id);
+                  navigate(`/boards/${board.id}`);
+                }}
+                className={`text-left p-4 rounded-xl border transition-colors flex flex-col justify-between gap-3 group ${
+                  isActive
+                    ? 'bg-brand-subtle/40 border-brand/40'
+                    : 'bg-subtle/50 hover:bg-subtle border-line hover:border-line-strong'
+                }`}
+              >
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <h4 className="text-sm font-semibold text-ink group-hover:text-brand truncate">
+                      {board.name}
                     </h4>
+                    {isActive && (
+                      <span className="px-1.5 py-0.5 rounded text-[10px] font-medium bg-brand-subtle text-brand border border-brand/30 flex-shrink-0">
+                        Active
+                      </span>
+                    )}
                   </div>
-                  <button
-                    onClick={(e) => {
-                      e.stopPropagation();
-                      toggleProjectStar(proj.id);
-                    }}
-                    className={`p-1 rounded transition-colors ${
-                      proj.starred ? 'text-amber-400' : 'text-slate-600 hover:text-slate-400'
-                    }`}
-                  >
-                    <Star className="w-3.5 h-3.5 fill-current" />
-                  </button>
+                  <p className="text-xs text-ink-secondary line-clamp-2">
+                    {board.description || 'No description provided.'}
+                  </p>
                 </div>
 
-                <p className="text-xs text-slate-400 line-clamp-2 leading-relaxed mb-3">
-                  {proj.description}
-                </p>
-              </div>
-
-              <div>
-                {/* Progress bar */}
-                <div className="space-y-1 mb-3">
-                  <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="text-slate-400">Progress</span>
-                    <span className="text-slate-200 font-bold">{proj.progress}%</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full rounded-full transition-all duration-300"
-                      style={{
-                        width: `${proj.progress}%`,
-                        backgroundColor: proj.color || '#6366f1',
-                      }}
-                    />
-                  </div>
-                </div>
-
-                {/* Team & Sprint footer */}
-                <div className="flex items-center justify-between pt-2 border-t border-slate-800 text-xs">
-                  <AvatarGroup users={team} max={3} size="xs" />
-                  <span className="font-mono text-[11px] text-slate-400 bg-slate-800/80 px-2 py-0.5 rounded border border-slate-700/60">
-                    {proj.sprint}
+                <div className="flex items-center justify-between pt-2 border-t border-line text-[11px] text-ink-muted w-full">
+                  <span className="inline-flex items-center gap-1">
+                    {isActive ? (
+                      <>
+                        {lists.length} lists • {activeBoardCardCount} cards
+                      </>
+                    ) : createdLabel ? (
+                      <>
+                        <Calendar className="w-3 h-3" />
+                        <span>{createdLabel}</span>
+                      </>
+                    ) : (
+                      'Workspace board'
+                    )}
                   </span>
+                  <ArrowRight className="w-3.5 h-3.5 text-ink-muted group-hover:text-brand" />
                 </div>
-              </div>
-            </div>
-          );
-        })}
-      </div>
+              </button>
+            );
+          })}
+        </div>
+      )}
     </div>
   );
 };
-
