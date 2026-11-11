@@ -12,7 +12,7 @@ export const CardsByListChart = () => {
   const maxCount = Math.max(1, ...counts.map((c) => c.count));
 
   return (
-    <div className="rounded-xl bg-surface border border-line p-5 shadow-sm flex flex-col justify-between h-full">
+    <div className="rounded-xl bg-surface border border-line p-5 shadow-card flex flex-col justify-between h-full">
       <div className="flex items-start justify-between gap-2 mb-4">
         <div>
           <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
@@ -23,7 +23,7 @@ export const CardsByListChart = () => {
             {activeBoard ? `List distribution in ${activeBoard.name}` : 'No active board selected'}
           </p>
         </div>
-        <span className="text-xs font-mono font-semibold text-ink-secondary px-2 py-0.5 rounded bg-subtle border border-line">
+        <span className="text-xs font-mono font-medium tabular-nums text-ink-secondary px-2 py-0.5 rounded-md bg-subtle border border-line">
           {lists.length} {lists.length === 1 ? 'list' : 'lists'}
         </span>
       </div>

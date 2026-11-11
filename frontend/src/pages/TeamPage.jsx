@@ -159,13 +159,13 @@ export const TeamPage = () => {
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
           <div className="flex items-center gap-2.5">
-            <h1 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">
-              Team & Membership
+            <h1 className="text-xl sm:text-2xl font-semibold text-ink tracking-tight">
+              Team &amp; Membership
             </h1>
             {currentUserRole && <RoleBadge role={currentUserRole} />}
           </div>
-          <p className="text-xs sm:text-sm text-ink-muted mt-1">
-            Manage collaborators and invitations for <strong className="text-ink">{activeWorkspace.name}</strong>.
+          <p className="text-xs sm:text-sm text-ink-secondary mt-1">
+            Manage collaborators and invitations for <strong className="text-ink font-medium">{activeWorkspace.name}</strong>.
           </p>
         </div>
 
@@ -182,14 +182,14 @@ export const TeamPage = () => {
       {workspaceError && (
         <div
           role="alert"
-          className="rounded-xl bg-rose-500/10 border border-rose-500/30 p-4 text-xs text-rose-500"
+          className="rounded-xl bg-danger-subtle border border-danger/30 p-4 text-xs text-danger"
         >
           {workspaceError}
         </div>
       )}
 
       {/* Workspace Invitation Panel */}
-      <div className="rounded-xl bg-surface border border-line p-5 shadow-sm">
+      <div className="rounded-xl bg-surface border border-line p-5 shadow-card">
         <div className="flex flex-wrap items-center justify-between gap-4">
           <div className="space-y-1">
             <div className="flex items-center gap-2">
@@ -256,7 +256,7 @@ export const TeamPage = () => {
             return (
               <div
                 key={member.id}
-                className="rounded-xl bg-surface border border-line p-5 shadow-sm flex flex-col justify-between gap-4"
+                className="rounded-xl bg-surface border border-line p-5 shadow-card flex flex-col justify-between gap-4"
               >
                 <div className="space-y-3">
                   <div className="flex items-start justify-between gap-3">
@@ -289,7 +289,7 @@ export const TeamPage = () => {
                       variant="ghost"
                       size="sm"
                       icon={isSelf ? LogOut : UserMinus}
-                      className="text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
+                      className="text-danger hover:bg-danger-subtle hover:text-danger"
                       onClick={() => setConfirmTarget(member)}
                     >
                       {isSelf ? 'Leave Workspace' : 'Remove'}

@@ -196,14 +196,14 @@ export const TaskDetailsDrawer = () => {
   return (
     <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true" aria-label="Card details">
       <div
-        className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-overlay backdrop-blur-[1px] transition-opacity"
         onClick={closeCardDetails}
       />
 
-      <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-2xl bg-surface border-l border-line shadow-2xl flex flex-col justify-between overflow-hidden">
+      <div className="fixed inset-y-0 right-0 max-w-full flex pl-6 sm:pl-10">
+        <div className="w-screen max-w-2xl bg-surface border-l border-line shadow-popover flex flex-col justify-between overflow-hidden">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-line flex items-center justify-between gap-3 bg-subtle/40">
+          <div className="px-6 py-4 border-b border-line flex items-center justify-between gap-3 bg-sidebar">
             <div className="flex items-center gap-2.5 min-w-0">
               {activeBoard && (
                 <span className="text-xs font-medium text-ink-muted truncate max-w-[160px]">
@@ -227,7 +227,7 @@ export const TaskDetailsDrawer = () => {
                 onClick={() => setConfirmDeleteOpen(true)}
                 aria-label="Delete card"
                 title="Delete card"
-                className="p-1.5 rounded-lg text-ink-muted hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                className="p-1.5 rounded-lg text-ink-muted hover:text-danger hover:bg-danger-subtle transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
@@ -247,7 +247,7 @@ export const TaskDetailsDrawer = () => {
             {saveError && (
               <div
                 role="alert"
-                className="flex items-start gap-2 rounded-lg bg-rose-500/10 border border-rose-500/30 p-3 text-xs text-rose-500"
+                className="flex items-start gap-2 rounded-lg bg-danger-subtle border border-danger/30 p-3 text-xs text-danger"
               >
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <span>{saveError}</span>
@@ -263,11 +263,11 @@ export const TaskDetailsDrawer = () => {
                 type="text"
                 value={title}
                 onChange={(e) => setTitle(e.target.value)}
-                className="w-full rounded-lg bg-subtle border border-line-strong px-3 py-2 text-base font-semibold text-ink focus:outline-none focus:border-brand"
+                className="w-full rounded-lg bg-surface border border-line-strong px-3 py-2 text-base font-semibold text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
             </div>
 
-            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-subtle/40 border border-line">
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-sidebar border border-line">
               <div>
                 <label
                   htmlFor="drawer-card-list"
@@ -338,7 +338,7 @@ export const TaskDetailsDrawer = () => {
                 value={description}
                 onChange={(e) => setDescription(e.target.value)}
                 placeholder="Write a clear description for this card..."
-                className="w-full rounded-lg bg-subtle border border-line-strong px-3 py-2 text-sm text-ink placeholder-ink-muted focus:outline-none focus:border-brand"
+                className="w-full rounded-lg bg-surface border border-line-strong px-3 py-2 text-sm text-ink placeholder-ink-muted focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
               />
             </div>
 
@@ -388,7 +388,7 @@ export const TaskDetailsDrawer = () => {
                   }}
                   placeholder="Add label..."
                   aria-label="New card label"
-                  className="flex-1 rounded-lg bg-subtle border border-line-strong px-3 py-1.5 text-xs text-ink placeholder-ink-muted focus:outline-none focus:border-brand"
+                  className="flex-1 rounded-lg bg-surface border border-line-strong px-3 py-1.5 text-xs text-ink placeholder-ink-muted focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
                 />
                 <Button type="button" variant="secondary" size="sm" icon={Plus} onClick={handleAddLabel}>
                   Add

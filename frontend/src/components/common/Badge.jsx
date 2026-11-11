@@ -9,16 +9,11 @@ export const Badge = ({
 }) => {
   const variants = {
     default: 'bg-subtle text-ink-secondary border-line',
-    primary:
-      'bg-indigo-50 text-indigo-700 border-indigo-200 dark:bg-indigo-950/60 dark:text-indigo-300 dark:border-indigo-800/50',
-    success:
-      'bg-emerald-50 text-emerald-700 border-emerald-200 dark:bg-emerald-950/60 dark:text-emerald-300 dark:border-emerald-800/50',
-    warning:
-      'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-950/60 dark:text-amber-300 dark:border-amber-800/50',
-    danger:
-      'bg-rose-50 text-rose-700 border-rose-200 dark:bg-rose-950/60 dark:text-rose-300 dark:border-rose-800/50',
-    info:
-      'bg-sky-50 text-sky-700 border-sky-200 dark:bg-sky-950/60 dark:text-sky-300 dark:border-sky-800/50',
+    primary: 'bg-brand-subtle text-brand border-brand/25',
+    success: 'bg-success-subtle text-success border-success/25',
+    warning: 'bg-warning-subtle text-warning border-warning/25',
+    danger: 'bg-danger-subtle text-danger border-danger/25',
+    info: 'bg-info-subtle text-info border-info/25',
   };
 
   const sizes = {
@@ -28,12 +23,12 @@ export const Badge = ({
   };
 
   const dotColors = {
-    default: 'bg-slate-400',
-    primary: 'bg-indigo-500',
-    success: 'bg-emerald-500',
-    warning: 'bg-amber-500',
-    danger: 'bg-rose-500',
-    info: 'bg-sky-500',
+    default: 'bg-ink-muted',
+    primary: 'bg-brand',
+    success: 'bg-success',
+    warning: 'bg-warning',
+    danger: 'bg-danger',
+    info: 'bg-info',
   };
 
   return (

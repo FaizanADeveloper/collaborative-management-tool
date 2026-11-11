@@ -14,7 +14,7 @@ export const BoardSkeleton = () => (
     {[1, 2, 3].map((col) => (
       <div
         key={col}
-        className="w-80 flex-shrink-0 rounded-xl bg-surface border border-line p-3 space-y-3"
+        className="w-80 flex-shrink-0 rounded-xl bg-sidebar border border-line p-3 space-y-3"
       >
         <div className="flex items-center justify-between">
           <Skeleton className="h-4 w-28" />

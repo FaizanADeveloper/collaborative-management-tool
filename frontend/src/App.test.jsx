@@ -5,6 +5,7 @@ import App from './App';
 import { EmptyState } from './components/common/EmptyState';
 import { ConfirmDialog } from './components/common/ConfirmDialog';
 import { useAuthStore } from './store/useAuthStore';
+import { useUIStore } from './store/useUIStore';
 import { setStoredToken } from './services/apiClient';
 
 describe('Frontend Application Shell & Protected Routing', () => {
@@ -12,6 +13,12 @@ describe('Frontend Application Shell & Protected Routing', () => {
     vi.restoreAllMocks();
     window.localStorage.clear();
     window.history.replaceState({}, '', '/');
+    document.documentElement.classList.add('dark');
+    useUIStore.setState({
+      theme: 'dark',
+      sidebarCollapsed: false,
+      mobileSidebarOpen: false,
+    });
     useAuthStore.setState({
       user: null,
       token: null,
@@ -21,9 +28,16 @@ describe('Frontend Application Shell & Protected Routing', () => {
     });
   });
 
-  it('redirects unauthenticated visitors to the login screen', async () => {
+  it('redirects unauthenticated visitors to the Flowdesk login screen and toggles light/dark mode', async () => {
     render(<App />);
     expect(await screen.findByRole('heading', { name: /sign in to flowdesk/i })).toBeInTheDocument();
+    expect(screen.getAllByText('Flowdesk').length).toBeGreaterThan(0);
+
+    const authThemeBtn = screen.getByRole('button', { name: /switch to light theme/i });
+    expect(document.documentElement.classList.contains('dark')).toBe(true);
+    fireEvent.click(authThemeBtn);
+    expect(document.documentElement.classList.contains('dark')).toBe(false);
+    expect(screen.getByRole('button', { name: /switch to dark theme/i })).toBeInTheDocument();
   });
 
   it('renders authenticated shell and supports light/dark theme switching', async () => {

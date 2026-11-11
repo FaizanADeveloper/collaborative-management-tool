@@ -96,11 +96,11 @@ export const BoardsPage = () => {
     <div className="space-y-6">
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">
+          <h1 className="text-xl sm:text-2xl font-semibold text-ink tracking-tight">
             Boards
           </h1>
-          <p className="text-xs sm:text-sm text-ink-muted mt-1">
-            Kanban boards inside <strong className="text-ink">{activeWorkspace?.name || 'Active Workspace'}</strong>.
+          <p className="text-xs sm:text-sm text-ink-secondary mt-1">
+            Kanban boards inside <strong className="text-ink font-medium">{activeWorkspace?.name || 'Active Workspace'}</strong>.
           </p>
         </div>
 
@@ -109,19 +109,19 @@ export const BoardsPage = () => {
         </Button>
       </div>
 
-      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-surface border border-line">
-        <div className="relative min-w-[220px] flex-1 max-w-sm">
+      <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-surface border border-line shadow-card">
+        <div className="relative min-w-[200px] flex-1 max-w-sm">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
           <input
             type="text"
             value={search}
             onChange={(e) => setSearch(e.target.value)}
             placeholder="Filter boards by name or description..."
-            className="w-full bg-subtle border border-line-strong rounded-lg pl-8 pr-3 py-1.5 text-xs text-ink placeholder-ink-muted focus:outline-none focus:border-brand"
+            className="w-full bg-canvas border border-line-strong rounded-lg pl-8 pr-3 py-1.5 text-xs text-ink placeholder-ink-muted focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
         </div>
 
-        <span className="text-xs text-ink-muted">
+        <span className="text-xs text-ink-muted tabular-nums">
           {filteredBoards.length} {filteredBoards.length === 1 ? 'board' : 'boards'}
         </span>
       </div>
@@ -129,7 +129,7 @@ export const BoardsPage = () => {
       {boardError && (
         <div
           role="alert"
-          className="rounded-xl bg-rose-500/10 border border-rose-500/30 p-4 text-xs text-rose-500"
+          className="rounded-xl bg-danger-subtle border border-danger/30 p-4 text-xs text-danger"
         >
           {boardError}
         </div>
@@ -168,7 +168,7 @@ export const BoardsPage = () => {
             return (
               <div
                 key={board.id}
-                className="rounded-xl bg-surface border border-line hover:border-line-strong p-5 shadow-sm flex flex-col justify-between gap-4 transition-colors"
+                className="rounded-xl bg-surface border border-line hover:border-line-strong p-5 shadow-card flex flex-col justify-between gap-4 transition-colors"
               >
                 <div className="space-y-2.5">
                   <div className="flex items-start justify-between gap-2">
@@ -199,7 +199,7 @@ export const BoardsPage = () => {
                           type="button"
                           onClick={() => setBoardToDelete(board)}
                           aria-label={`Delete ${board.name}`}
-                          className="p-1.5 rounded-lg text-ink-muted hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                          className="p-1.5 rounded-lg text-ink-muted hover:text-danger hover:bg-danger-subtle transition-colors"
                         >
                           <Trash2 className="w-3.5 h-3.5" />
                         </button>

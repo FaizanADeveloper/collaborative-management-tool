@@ -3,10 +3,10 @@ import { useBoardStore } from '../../store/useBoardStore';
 import { Layers } from 'lucide-react';
 
 const PRIORITY_BUCKETS = [
-  { key: 'urgent', label: 'Urgent', barClass: 'bg-rose-500', dotClass: 'bg-rose-500' },
-  { key: 'high', label: 'High', barClass: 'bg-amber-500', dotClass: 'bg-amber-500' },
-  { key: 'medium', label: 'Medium', barClass: 'bg-indigo-500', dotClass: 'bg-indigo-500' },
-  { key: 'low', label: 'Low', barClass: 'bg-slate-400', dotClass: 'bg-slate-400' },
+  { key: 'urgent', label: 'Urgent', barClass: 'bg-danger', dotClass: 'bg-danger' },
+  { key: 'high', label: 'High', barClass: 'bg-warning', dotClass: 'bg-warning' },
+  { key: 'medium', label: 'Medium', barClass: 'bg-info', dotClass: 'bg-info' },
+  { key: 'low', label: 'Low', barClass: 'bg-ink-muted', dotClass: 'bg-ink-muted' },
 ];
 
 export const TaskDistributionChart = () => {
@@ -15,7 +15,7 @@ export const TaskDistributionChart = () => {
   const total = cards.length;
 
   return (
-    <div className="rounded-xl bg-surface border border-line p-5 shadow-sm flex flex-col justify-between h-full">
+    <div className="rounded-xl bg-surface border border-line p-5 shadow-card flex flex-col justify-between h-full">
       <div className="flex items-start justify-between gap-2 mb-4">
         <div>
           <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
@@ -26,7 +26,7 @@ export const TaskDistributionChart = () => {
             {activeBoard ? `Cards on ${activeBoard.name}` : 'Select a board to view breakdown'}
           </p>
         </div>
-        <span className="text-xs font-mono font-semibold text-ink-secondary px-2 py-0.5 rounded bg-subtle border border-line">
+        <span className="text-xs font-mono font-medium tabular-nums text-ink-secondary px-2 py-0.5 rounded-md bg-subtle border border-line">
           {total} {total === 1 ? 'card' : 'cards'}
         </span>
       </div>

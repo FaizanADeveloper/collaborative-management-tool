@@ -65,7 +65,7 @@ export const DashboardPage = () => {
   return (
     <div className="space-y-6">
       {/* Workspace Header */}
-      <section className="rounded-2xl bg-surface border border-line p-6 sm:p-7 shadow-sm">
+      <section className="rounded-xl bg-surface border border-line p-5 sm:p-6 shadow-card">
         <div className="flex flex-wrap items-center justify-between gap-5">
           <div className="space-y-2 max-w-xl">
             <div className="flex flex-wrap items-center gap-2">
@@ -74,7 +74,7 @@ export const DashboardPage = () => {
               </span>
               {activeWorkspace?.role && <RoleBadge role={activeWorkspace.role} />}
             </div>
-            <h1 className="text-2xl sm:text-3xl font-bold text-ink tracking-tight">
+            <h1 className="text-xl sm:text-2xl font-semibold text-ink tracking-tight">
               Welcome back, {user?.name?.split(' ')[0] || 'there'}
             </h1>
             <p className="text-xs sm:text-sm text-ink-secondary leading-relaxed">
@@ -147,28 +147,28 @@ export const DashboardPage = () => {
               value={workspaces.length}
               subtitle={`Active: ${activeWorkspace.name}`}
               icon={Building2}
-              color="indigo"
+              color="teal"
             />
             <StatCard
               title="Workspace Boards"
               value={boards.length}
               subtitle={activeBoard ? `Active: ${activeBoard.name}` : 'No active board'}
               icon={FolderKanban}
-              color="sky"
+              color="slate"
             />
             <StatCard
               title="Team Members"
               value={members.length}
               subtitle={`Your role: ${activeWorkspace.role || 'member'}`}
               icon={Users}
-              color="emerald"
+              color="success"
             />
             <StatCard
               title="Active Board Cards"
               value={allBoardCards.length}
               subtitle={`${urgentOrHighCount} high/urgent priority`}
               icon={Columns3}
-              color={urgentOrHighCount > 0 ? 'amber' : 'indigo'}
+              color={urgentOrHighCount > 0 ? 'warning' : 'teal'}
             />
           </div>
 

@@ -54,10 +54,10 @@ export const TaskCard = ({ card, task, index, isDragDisabled = false }) => {
               openCardDetails(item.id);
             }
           }}
-          className={`group rounded-xl border p-3.5 select-none transition-all duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
+          className={`group rounded-xl border p-3.5 select-none transition-colors duration-150 cursor-pointer focus:outline-none focus-visible:ring-2 focus-visible:ring-brand ${
             snapshot.isDragging
-              ? 'bg-elevated border-brand shadow-2xl scale-[1.02] ring-2 ring-brand/40 z-50'
-              : 'bg-canvas/60 hover:bg-subtle border-line hover:border-line-strong shadow-sm'
+              ? 'bg-elevated border-brand shadow-popover ring-1 ring-brand/40 z-50'
+              : 'bg-surface hover:bg-elevated border-line hover:border-line-strong shadow-card'
           }`}
           style={provided.draggableProps.style}
         >
@@ -96,8 +96,8 @@ export const TaskCard = ({ card, task, index, isDragDisabled = false }) => {
               <div className="flex items-center gap-2.5">
                 {dueDateLabel && (
                   <div
-                    className={`flex items-center gap-1 text-[11px] ${
-                      isOverdue ? 'text-rose-500 font-semibold' : 'text-ink-muted'
+                    className={`flex items-center gap-1 text-[11px] tabular-nums ${
+                      isOverdue ? 'text-danger font-medium' : 'text-ink-muted'
                     }`}
                     title={isOverdue ? `Overdue (${dueDateLabel})` : `Due ${dueDateLabel}`}
                   >

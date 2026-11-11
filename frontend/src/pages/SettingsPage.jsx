@@ -153,17 +153,17 @@ export const SettingsPage = () => {
   return (
     <div className="space-y-6 max-w-4xl">
       <div>
-        <h1 className="text-xl sm:text-2xl font-bold text-ink tracking-tight flex items-center gap-2">
-          <Settings className="w-6 h-6 text-brand" />
-          <span>Workspace & Account Settings</span>
+        <h1 className="text-xl sm:text-2xl font-semibold text-ink tracking-tight flex items-center gap-2">
+          <Settings className="w-5 h-5 text-brand" />
+          <span>Workspace &amp; Account Settings</span>
         </h1>
-        <p className="text-xs sm:text-sm text-ink-muted mt-1">
+        <p className="text-xs sm:text-sm text-ink-secondary mt-1">
           View your account details, switch color themes, and manage workspace configuration.
         </p>
       </div>
 
       {/* Account Information */}
-      <section className="rounded-xl bg-surface border border-line p-6 shadow-sm space-y-4">
+      <section className="rounded-xl bg-surface border border-line p-6 shadow-card space-y-4">
         <div className="flex items-center gap-2 pb-3 border-b border-line">
           <User className="w-4 h-4 text-brand" />
           <h2 className="text-sm font-semibold text-ink">Signed-in Account</h2>
@@ -184,7 +184,7 @@ export const SettingsPage = () => {
       </section>
 
       {/* Appearance & Theme */}
-      <section className="rounded-xl bg-surface border border-line p-6 shadow-sm space-y-4">
+      <section className="rounded-xl bg-surface border border-line p-6 shadow-card space-y-4">
         <div className="flex items-center gap-2 pb-3 border-b border-line">
           <Palette className="w-4 h-4 text-brand" />
           <h2 className="text-sm font-semibold text-ink">Appearance</h2>
@@ -222,7 +222,7 @@ export const SettingsPage = () => {
         />
       ) : (
         <>
-          <section className="rounded-xl bg-surface border border-line p-6 shadow-sm space-y-4">
+          <section className="rounded-xl bg-surface border border-line p-6 shadow-card space-y-4">
             <div className="flex items-center justify-between gap-2 pb-3 border-b border-line">
               <div className="flex items-center gap-2">
                 <Building2 className="w-4 h-4 text-brand" />
@@ -234,7 +234,7 @@ export const SettingsPage = () => {
             {formError && (
               <div
                 role="alert"
-                className="flex items-start gap-2 rounded-lg bg-rose-500/10 border border-rose-500/30 p-3 text-xs text-rose-500"
+                className="flex items-start gap-2 rounded-lg bg-danger-subtle border border-danger/30 p-3 text-xs text-danger"
               >
                 <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
                 <span>{formError}</span>
@@ -282,10 +282,10 @@ export const SettingsPage = () => {
           </section>
 
           {/* Danger Zone */}
-          <section className="rounded-xl bg-rose-500/5 border border-rose-500/30 p-6 shadow-sm space-y-4">
-            <div className="flex items-center gap-2 pb-2 border-b border-rose-500/20">
-              <Trash2 className="w-4 h-4 text-rose-500" />
-              <h2 className="text-sm font-semibold text-rose-500">Danger Zone</h2>
+          <section className="rounded-xl bg-danger-subtle border border-danger/30 p-6 shadow-card space-y-4">
+            <div className="flex items-center gap-2 pb-2 border-b border-danger/20">
+              <Trash2 className="w-4 h-4 text-danger" />
+              <h2 className="text-sm font-semibold text-danger">Danger Zone</h2>
             </div>
 
             {isOwner ? (

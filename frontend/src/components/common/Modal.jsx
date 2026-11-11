@@ -38,14 +38,14 @@ export const Modal = ({
       aria-labelledby={title ? titleId : undefined}
     >
       <div
-        className="fixed inset-0 bg-slate-950/60 backdrop-blur-[2px] transition-opacity"
+        className="fixed inset-0 bg-overlay backdrop-blur-[1px] transition-opacity"
         onClick={onClose}
         aria-hidden="true"
       />
 
       <div className="flex min-h-full items-center justify-center p-4 text-center">
         <div
-          className={`w-full ${maxWidth} transform overflow-hidden rounded-xl bg-elevated border border-line-strong p-6 text-left align-middle shadow-xl transition-all relative ${className}`}
+          className={`w-full ${maxWidth} transform overflow-hidden rounded-xl bg-elevated border border-line-strong p-6 text-left align-middle shadow-popover transition-all relative ${className}`}
           onClick={(e) => e.stopPropagation()}
         >
           <div className="flex items-start justify-between pb-4 border-b border-line">
@@ -86,7 +86,7 @@ export const Card = ({
   return (
     <div
       onClick={onClick}
-      className={`rounded-xl bg-surface border border-line p-5 ${
+      className={`rounded-xl bg-surface border border-line p-5 shadow-card ${
         hover
           ? 'hover:border-line-strong hover:bg-subtle/50 transition-colors duration-150 cursor-pointer'
           : ''

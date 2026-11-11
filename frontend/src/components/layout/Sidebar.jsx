@@ -77,7 +77,7 @@ export const Sidebar = () => {
     <>
       {mobileSidebarOpen && (
         <div
-          className="fixed inset-0 z-40 bg-slate-950/60 backdrop-blur-[2px] lg:hidden"
+          className="fixed inset-0 z-40 bg-overlay backdrop-blur-[1px] lg:hidden"
           onClick={closeMobileSidebar}
           aria-hidden="true"
         />
@@ -85,7 +85,7 @@ export const Sidebar = () => {
 
       <aside
         aria-label="Primary Sidebar"
-        className={`fixed left-0 top-0 bottom-0 bg-surface border-r border-line z-50 transition-all duration-200 flex flex-col justify-between select-none ${
+        className={`fixed left-0 top-0 bottom-0 bg-sidebar border-r border-line z-50 transition-all duration-200 flex flex-col justify-between select-none ${
           mobileSidebarOpen ? 'translate-x-0' : '-translate-x-full lg:translate-x-0'
         } ${sidebarCollapsed ? 'lg:w-16 w-60' : 'w-60'}`}
       >
@@ -133,11 +133,14 @@ export const Sidebar = () => {
             {workspaceMenuOpen && (
               <div
                 role="menu"
-                className="absolute left-3 top-14 w-60 rounded-xl bg-elevated border border-line-strong shadow-xl py-1.5 z-50"
+                className="absolute left-3 top-14 w-60 rounded-xl bg-elevated border border-line-strong shadow-popover py-1.5 z-50"
                 onClick={(e) => e.stopPropagation()}
               >
-                <div className="px-3 py-1.5 border-b border-line text-[11px] font-semibold text-ink-muted uppercase tracking-wider">
-                  Workspaces
+                <div className="px-3 py-1.5 border-b border-line flex items-center justify-between text-[11px] font-semibold text-ink-muted uppercase tracking-wider">
+                  <span>Workspaces</span>
+                  <span className="text-[10px] font-medium normal-case tracking-normal text-ink-muted">
+                    Flowdesk
+                  </span>
                 </div>
                 <div className="py-1 max-h-56 overflow-y-auto">
                   {workspaces.length === 0 ? (
@@ -259,12 +262,18 @@ export const Sidebar = () => {
                           setActiveBoardId(board.id);
                           handleNavigate(`/boards/${board.id}`);
                         }}
-                        className={`w-full flex items-center justify-between px-3 py-1.5 rounded-lg text-xs transition-colors text-left ${
+                        className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs transition-colors text-left ${
                           board.id === activeBoardId
-                            ? 'bg-subtle text-ink font-medium'
-                            : 'text-ink-secondary hover:text-ink hover:bg-subtle/60'
+                            ? 'bg-surface text-ink font-medium border border-line shadow-card'
+                            : 'text-ink-secondary hover:text-ink hover:bg-subtle border border-transparent'
                         }`}
                       >
+                        <span
+                          className={`w-1.5 h-1.5 rounded-full flex-shrink-0 ${
+                            board.id === activeBoardId ? 'bg-brand' : 'bg-ink-muted/40'
+                          }`}
+                          aria-hidden="true"
+                        />
                         <span className="truncate">{board.name}</span>
                       </button>
                     ))}

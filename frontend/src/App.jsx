@@ -9,6 +9,7 @@ import { BoardCreateModal } from './components/boards/BoardCreateModal';
 import { WorkspaceCreateModal } from './components/workspaces/WorkspaceCreateModal';
 import { JoinWorkspaceModal } from './components/workspaces/JoinWorkspaceModal';
 import { ToastContainer } from './components/common/ToastContainer';
+import { BrandMark } from './components/common/BrandLogo';
 
 import { DashboardPage } from './pages/DashboardPage';
 import { BoardPage } from './pages/BoardPage';
@@ -28,8 +29,11 @@ import { useBoardStore } from './store/useBoardStore';
 const HydrationLoader = () => (
   <div className="min-h-screen bg-canvas text-ink flex items-center justify-center p-6">
     <div className="flex flex-col items-center gap-3">
-      <div className="w-7 h-7 rounded-full border-2 border-brand border-t-transparent animate-spin" />
-      <p className="text-xs text-ink-muted font-medium">Restoring session...</p>
+      <BrandMark size="md" />
+      <div className="flex items-center gap-2 text-xs text-ink-muted font-medium">
+        <span className="w-3.5 h-3.5 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+        <span>Restoring workspace...</span>
+      </div>
     </div>
   </div>
 );
@@ -66,7 +70,7 @@ const PublicOnlyRoute = ({ children }) => {
 };
 
 const AppLayout = ({ children }) => {
-  const { sidebarCollapsed, theme } = useUIStore();
+  const { sidebarCollapsed } = useUIStore();
   const { isAuthenticated } = useAuthStore();
   const {
     hasLoadedWorkspaces,
@@ -75,14 +79,6 @@ const AppLayout = ({ children }) => {
     fetchWorkspaces,
   } = useWorkspaceStore();
   const { fetchBoards, clearForWorkspaceChange } = useBoardStore();
-
-  useEffect(() => {
-    if (theme === 'dark') {
-      document.documentElement.classList.add('dark');
-    } else {
-      document.documentElement.classList.remove('dark');
-    }
-  }, [theme]);
 
   useEffect(() => {
     if (isAuthenticated && !hasLoadedWorkspaces && !isLoadingWorkspaces) {
@@ -104,13 +100,13 @@ const AppLayout = ({ children }) => {
       <Sidebar />
 
       <div
-        className={`flex-1 flex flex-col transition-all duration-200 pl-0 ${
+        className={`flex-1 flex flex-col pt-14 transition-all duration-200 pl-0 ${
           sidebarCollapsed ? 'lg:pl-16' : 'lg:pl-60'
         }`}
       >
         <Navbar />
 
-        <main className="flex-1 pt-14 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
+        <main className="flex-1 p-4 sm:p-6 lg:p-8 max-w-7xl w-full mx-auto">
           {children}
         </main>
       </div>
@@ -128,6 +124,15 @@ const AppLayout = ({ children }) => {
 
 export function AppRoutes() {
   const hydrateAuth = useAuthStore((state) => state.hydrateAuth);
+  const theme = useUIStore((state) => state.theme);
+
+  useEffect(() => {
+    if (theme === 'dark') {
+      document.documentElement.classList.add('dark');
+    } else {
+      document.documentElement.classList.remove('dark');
+    }
+  }, [theme]);
 
   useEffect(() => {
     hydrateAuth();

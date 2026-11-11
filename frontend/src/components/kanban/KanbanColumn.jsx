@@ -61,14 +61,14 @@ export const KanbanColumn = ({
         <div
           ref={listProvided.innerRef}
           {...listProvided.draggableProps}
-          className={`flex flex-col w-[300px] min-w-[280px] rounded-xl bg-surface border shadow-sm overflow-hidden flex-shrink-0 transition-shadow ${
+          className={`flex flex-col w-[300px] min-w-[280px] rounded-xl bg-sidebar border overflow-hidden flex-shrink-0 transition-shadow ${
             listSnapshot.isDragging
-              ? 'border-brand ring-2 ring-brand/30 shadow-xl'
-              : 'border-line'
+              ? 'border-brand ring-1 ring-brand/40 shadow-popover'
+              : 'border-line shadow-card'
           }`}
         >
           {/* List Header */}
-          <div className="px-3 py-2.5 flex items-center justify-between gap-2 border-b border-line bg-subtle/50">
+          <div className="px-3 py-2.5 flex items-center justify-between gap-2 border-b border-line bg-sidebar">
             <div className="flex items-center gap-1.5 min-w-0 flex-1">
               <span
                 {...listProvided.dragHandleProps}
@@ -99,7 +99,7 @@ export const KanbanColumn = ({
                     type="submit"
                     aria-label="Save list name"
                     disabled={isSavingRename}
-                    className="p-1 rounded text-emerald-500 hover:bg-emerald-500/10"
+                    className="p-1 rounded text-success hover:bg-success-subtle"
                   >
                     <Check className="w-3.5 h-3.5" />
                   </button>
@@ -163,7 +163,7 @@ export const KanbanColumn = ({
                   onClick={() => onRequestDeleteList(list)}
                   aria-label={`Delete ${list.name}`}
                   title="Delete list"
-                  className="p-1 rounded text-ink-muted hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
+                  className="p-1 rounded text-ink-muted hover:text-danger hover:bg-danger-subtle transition-colors"
                 >
                   <Trash2 className="w-3.5 h-3.5" />
                 </button>
@@ -187,7 +187,7 @@ export const KanbanColumn = ({
                 ref={provided.innerRef}
                 {...provided.droppableProps}
                 className={`p-2.5 flex-1 overflow-y-auto space-y-2.5 min-h-[260px] transition-colors ${
-                  snapshot.isDraggingOver ? 'bg-brand-subtle/40 ring-1 ring-inset ring-brand/30' : ''
+                  snapshot.isDraggingOver ? 'bg-brand-subtle ring-1 ring-inset ring-brand/30' : ''
                 }`}
               >
                 {cards.map((card, cardIdx) => (
@@ -218,11 +218,11 @@ export const KanbanColumn = ({
           </Droppable>
 
           {/* Footer Add Card */}
-          <div className="p-2 border-t border-line bg-subtle/30">
+          <div className="p-2 border-t border-line bg-sidebar">
             <button
               type="button"
               onClick={() => openCreateCard(list.id)}
-              className="w-full py-1.5 rounded-lg text-xs text-ink-muted hover:text-ink hover:bg-subtle transition-colors flex items-center justify-center gap-1.5 font-medium"
+              className="w-full py-1.5 rounded-lg text-xs text-ink-secondary hover:text-ink hover:bg-subtle transition-colors flex items-center justify-center gap-1.5 font-medium"
             >
               <Plus className="w-3.5 h-3.5" />
               <span>Add Card</span>

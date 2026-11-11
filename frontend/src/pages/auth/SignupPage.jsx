@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useUIStore } from '../../store/useUIStore';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { BrandLogo } from '../../components/common/BrandLogo';
-import { Lock, Mail, User, Eye, EyeOff, AlertCircle, Link2 } from 'lucide-react';
+import { Lock, Mail, User, Eye, EyeOff, AlertCircle, Link2, Sun, Moon } from 'lucide-react';
 
 export const SignupPage = () => {
   const [name, setName] = useState('');
@@ -17,6 +18,7 @@ export const SignupPage = () => {
   const [fieldErrors, setFieldErrors] = useState({});
 
   const { register } = useAuthStore();
+  const { theme, toggleTheme } = useUIStore();
   const navigate = useNavigate();
 
   const validateClientFields = () => {
@@ -77,27 +79,43 @@ export const SignupPage = () => {
 
   return (
     <div className="min-h-screen bg-canvas text-ink flex flex-col justify-between p-6 sm:p-10 max-w-lg mx-auto w-full">
-      <BrandLogo size="md" />
+      <div className="flex items-center justify-between gap-4">
+        <BrandLogo size="md" />
+        <button
+          type="button"
+          onClick={toggleTheme}
+          aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+          title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+          className="p-2 rounded-lg text-ink-muted hover:text-ink hover:bg-subtle border border-transparent hover:border-line transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+        >
+          {theme === 'dark' ? (
+            <Sun className="w-4 h-4 text-ink-secondary" />
+          ) : (
+            <Moon className="w-4 h-4 text-ink-secondary" />
+          )}
+        </button>
+      </div>
 
       <div className="my-auto py-8">
-        <div className="mb-6">
-          <h1 className="text-2xl font-bold text-ink tracking-tight">
-            Create your Flowdesk account
-          </h1>
-          <p className="text-sm text-ink-muted mt-1.5">
-            Register to create or join team workspaces and manage boards.
-          </p>
-        </div>
-
-        {formError && (
-          <div
-            role="alert"
-            className="mb-5 flex items-start gap-2.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3.5 py-2.5 text-xs text-rose-600 dark:text-rose-300"
-          >
-            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
-            <span>{formError}</span>
+        <div className="rounded-xl bg-surface border border-line p-6 sm:p-7 shadow-card">
+          <div className="mb-6">
+            <h1 className="text-2xl font-semibold text-ink tracking-tight">
+              Create your Flowdesk account
+            </h1>
+            <p className="text-sm text-ink-secondary mt-1.5">
+              Register to create or join team workspaces and manage boards.
+            </p>
           </div>
-        )}
+
+          {formError && (
+            <div
+              role="alert"
+              className="mb-5 flex items-start gap-2.5 rounded-lg border border-danger/30 bg-danger-subtle px-3.5 py-2.5 text-xs text-danger"
+            >
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <span>{formError}</span>
+            </div>
+          )}
 
         <form onSubmit={handleSubmit} className="space-y-4" noValidate>
           <Input
@@ -187,6 +205,7 @@ export const SignupPage = () => {
             Sign in
           </Link>
         </p>
+        </div>
       </div>
 
       <p className="text-xs text-ink-muted">

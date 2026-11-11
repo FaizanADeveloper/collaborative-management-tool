@@ -87,7 +87,7 @@ export const WorkspaceCreateModal = () => {
         {formError && (
           <div
             role="alert"
-            className="flex items-start gap-2 rounded-lg bg-rose-500/10 border border-rose-500/30 p-3 text-xs text-rose-500"
+            className="flex items-start gap-2 rounded-lg bg-danger-subtle border border-danger/30 p-3 text-xs text-danger"
           >
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>{formError}</span>

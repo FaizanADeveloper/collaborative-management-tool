@@ -281,11 +281,11 @@ export const CommandPalette = () => {
       aria-label="Quick search command palette"
     >
       <div
-        className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
+        className="fixed inset-0 bg-overlay backdrop-blur-[1px] transition-opacity"
         onClick={closeCommandPalette}
       />
 
-      <div className="relative mx-auto max-w-2xl overflow-hidden rounded-2xl bg-elevated border border-line-strong shadow-2xl">
+      <div className="relative mx-auto max-w-2xl overflow-hidden rounded-xl bg-elevated border border-line-strong shadow-popover">
         <div className="flex items-center px-4 border-b border-line bg-surface">
           <Search className="w-5 h-5 text-brand flex-shrink-0" />
           <input

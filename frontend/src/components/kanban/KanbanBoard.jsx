@@ -360,14 +360,14 @@ export const KanbanBoard = () => {
   return (
     <div className="space-y-4">
       {/* Board Header */}
-      <div className="p-4 sm:p-5 rounded-2xl bg-surface border border-line shadow-sm">
-        <div className="flex flex-wrap items-start justify-between gap-4">
-          <div className="space-y-1.5 min-w-0 flex-1">
+      <div className="p-4 sm:p-5 rounded-xl bg-surface border border-line shadow-card">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="space-y-1.5 min-w-0 sm:flex-1">
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-xl sm:text-2xl font-bold text-ink tracking-tight truncate">
+              <h1 className="text-xl sm:text-2xl font-semibold text-ink tracking-tight truncate">
                 {currentBoard.name}
               </h1>
-              <span className="px-2 py-0.5 rounded-full text-xs font-medium bg-subtle text-ink-secondary border border-line">
+              <span className="px-2 py-0.5 rounded-md text-xs font-medium tabular-nums bg-subtle text-ink-secondary border border-line">
                 {lists.length} {lists.length === 1 ? 'list' : 'lists'} • {totalCards}{' '}
                 {totalCards === 1 ? 'card' : 'cards'}
               </span>
@@ -385,7 +385,7 @@ export const KanbanBoard = () => {
                 aria-label="Switch active board"
                 value={currentBoard.id}
                 onChange={(e) => setActiveBoardId(e.target.value)}
-                className="bg-subtle border border-line-strong rounded-lg px-2.5 py-1.5 text-xs text-ink focus:outline-none focus:border-brand cursor-pointer"
+                className="bg-canvas border border-line-strong rounded-lg px-2.5 py-1.5 text-xs text-ink focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 cursor-pointer"
               >
                 {boards.map((b) => (
                   <option key={b.id} value={b.id}>
@@ -419,7 +419,7 @@ export const KanbanBoard = () => {
                   variant="ghost"
                   size="sm"
                   icon={Trash2}
-                  className="text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
+                  className="text-danger hover:bg-danger-subtle hover:text-danger"
                   onClick={() => setConfirmDeleteBoardOpen(true)}
                 >
                   Delete
@@ -433,7 +433,7 @@ export const KanbanBoard = () => {
       {boardError && (
         <div
           role="alert"
-          className="rounded-xl bg-rose-500/10 border border-rose-500/30 p-3 text-xs text-rose-500"
+          className="rounded-xl bg-danger-subtle border border-danger/30 p-3 text-xs text-danger"
         >
           {boardError}
         </div>
@@ -478,7 +478,7 @@ export const KanbanBoard = () => {
                 {isAddingList ? (
                   <form
                     onSubmit={handleCreateList}
-                    className="p-3 rounded-xl bg-surface border border-line-strong shadow-sm space-y-2.5"
+                    className="p-3 rounded-xl bg-surface border border-line-strong shadow-card space-y-2.5"
                   >
                     <input
                       type="text"
@@ -497,10 +497,10 @@ export const KanbanBoard = () => {
                       placeholder="Enter list name (e.g. Backlog)"
                       aria-label="New list name"
                       autoFocus
-                      className="w-full rounded-lg bg-subtle border border-line-strong px-3 py-1.5 text-sm text-ink placeholder-ink-muted focus:outline-none focus:border-brand"
+                      className="w-full rounded-lg bg-canvas border border-line-strong px-3 py-1.5 text-sm text-ink placeholder-ink-muted focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
                     />
                     {listSubmitError && (
-                      <p role="alert" className="text-xs text-rose-500">
+                      <p role="alert" className="text-xs text-danger">
                         {listSubmitError}
                       </p>
                     )}

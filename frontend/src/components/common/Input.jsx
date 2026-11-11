@@ -42,7 +42,7 @@ export const Input = React.forwardRef(
               Icon ? 'pl-9' : 'pl-3'
             } ${IconRight ? 'pr-9' : 'pr-3'} py-2 ${
               error
-                ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/30'
+                ? 'border-danger focus:border-danger focus:ring-danger/25'
                 : 'border-line-strong hover:border-ink-muted/60 focus:border-brand focus:ring-brand/25'
             } ${className}`}
             {...props}
@@ -54,7 +54,7 @@ export const Input = React.forwardRef(
           )}
         </div>
         {error ? (
-          <p role="alert" className="mt-1.5 text-xs text-rose-500 dark:text-rose-400">
+          <p role="alert" className="mt-1.5 text-xs text-danger">
             {error}
           </p>
         ) : helperText ? (
@@ -88,13 +88,13 @@ export const Textarea = React.forwardRef(
           aria-invalid={error ? 'true' : undefined}
           className={`block w-full rounded-lg bg-surface border text-ink placeholder-ink-muted text-sm p-3 transition-colors duration-150 focus:outline-none focus:ring-2 ${
             error
-              ? 'border-rose-500 focus:border-rose-500 focus:ring-rose-500/30'
+              ? 'border-danger focus:border-danger focus:ring-danger/25'
               : 'border-line-strong hover:border-ink-muted/60 focus:border-brand focus:ring-brand/25'
           } ${className}`}
           {...props}
         />
         {error ? (
-          <p role="alert" className="mt-1.5 text-xs text-rose-500 dark:text-rose-400">
+          <p role="alert" className="mt-1.5 text-xs text-danger">
             {error}
           </p>
         ) : helperText ? (
@@ -127,14 +127,14 @@ export const Select = React.forwardRef(
           id={selectId}
           aria-invalid={error ? 'true' : undefined}
           className={`block w-full rounded-lg bg-surface border border-line-strong text-ink text-sm py-2 px-3 focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/25 transition-colors ${
-            error ? 'border-rose-500' : ''
+            error ? 'border-danger focus:border-danger focus:ring-danger/25' : ''
           } ${className}`}
           {...props}
         >
           {children}
         </select>
         {error && (
-          <p role="alert" className="mt-1.5 text-xs text-rose-500 dark:text-rose-400">
+          <p role="alert" className="mt-1.5 text-xs text-danger">
             {error}
           </p>
         )}

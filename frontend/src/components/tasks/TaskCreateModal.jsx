@@ -141,7 +141,7 @@ export const TaskCreateModal = () => {
         {formError && (
           <div
             role="alert"
-            className="flex items-start gap-2 rounded-lg bg-rose-500/10 border border-rose-500/30 p-3 text-xs text-rose-500"
+            className="flex items-start gap-2 rounded-lg bg-danger-subtle border border-danger/30 p-3 text-xs text-danger"
           >
             <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
             <span>{formError}</span>
@@ -263,14 +263,14 @@ export const TaskCreateModal = () => {
                   handleAddLabel();
                 }
               }}
-              className="flex-1 rounded-lg bg-subtle border border-line-strong px-3 py-1.5 text-sm text-ink placeholder-ink-muted focus:outline-none focus:border-brand"
+              className="flex-1 rounded-lg bg-surface border border-line-strong px-3 py-1.5 text-sm text-ink placeholder-ink-muted focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
             />
             <Button type="button" variant="secondary" size="sm" icon={Plus} onClick={handleAddLabel}>
               Add
             </Button>
           </div>
           {fieldErrors.labels && (
-            <p className="mt-1 text-xs text-rose-500">{fieldErrors.labels}</p>
+            <p className="mt-1 text-xs text-danger">{fieldErrors.labels}</p>
           )}
           {labels.length > 0 && (
             <div className="flex flex-wrap gap-1.5 mt-2">

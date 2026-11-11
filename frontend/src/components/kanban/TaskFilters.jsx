@@ -20,10 +20,10 @@ export const TaskFilters = () => {
     filters.sortBy !== 'position';
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-surface border border-line">
+    <div className="flex flex-wrap items-center justify-between gap-3 p-3 rounded-xl bg-surface border border-line shadow-card">
       {/* Left Search & Filter Controls */}
-      <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[240px]">
-        <div className="relative min-w-[190px] flex-1 max-w-xs">
+      <div className="flex flex-wrap items-center gap-2.5 flex-1 min-w-[200px]">
+        <div className="relative min-w-[180px] flex-1 max-w-xs">
           <Search className="w-3.5 h-3.5 absolute left-3 top-1/2 -translate-y-1/2 text-ink-muted" />
           <input
             type="text"
@@ -31,7 +31,7 @@ export const TaskFilters = () => {
             value={filters.search}
             onChange={(e) => setFilter('search', e.target.value)}
             placeholder="Filter cards by title or label..."
-            className="w-full bg-subtle border border-line-strong rounded-lg pl-8 pr-7 py-1.5 text-xs text-ink placeholder-ink-muted focus:outline-none focus:border-brand"
+            className="w-full bg-canvas border border-line-strong rounded-lg pl-8 pr-7 py-1.5 text-xs text-ink placeholder-ink-muted focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20"
           />
           {filters.search && (
             <button
@@ -49,7 +49,7 @@ export const TaskFilters = () => {
           aria-label="Filter by assignee"
           value={filters.assigneeId}
           onChange={(e) => setFilter('assigneeId', e.target.value)}
-          className="bg-subtle border border-line-strong rounded-lg px-2.5 py-1.5 text-xs text-ink-secondary focus:outline-none focus:border-brand cursor-pointer"
+          className="bg-canvas border border-line-strong rounded-lg px-2.5 py-1.5 text-xs text-ink-secondary focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 cursor-pointer"
         >
           <option value="all">All Assignees</option>
           {members.map((member) => (
@@ -63,7 +63,7 @@ export const TaskFilters = () => {
           aria-label="Filter by priority"
           value={filters.priority}
           onChange={(e) => setFilter('priority', e.target.value)}
-          className="bg-subtle border border-line-strong rounded-lg px-2.5 py-1.5 text-xs text-ink-secondary focus:outline-none focus:border-brand cursor-pointer"
+          className="bg-canvas border border-line-strong rounded-lg px-2.5 py-1.5 text-xs text-ink-secondary focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 cursor-pointer"
         >
           <option value="all">All Priorities</option>
           <option value="urgent">Urgent</option>
@@ -77,7 +77,7 @@ export const TaskFilters = () => {
             aria-label="Filter by label"
             value={filters.label}
             onChange={(e) => setFilter('label', e.target.value)}
-            className="bg-subtle border border-line-strong rounded-lg px-2.5 py-1.5 text-xs text-ink-secondary focus:outline-none focus:border-brand cursor-pointer"
+            className="bg-canvas border border-line-strong rounded-lg px-2.5 py-1.5 text-xs text-ink-secondary focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 cursor-pointer"
           >
             <option value="all">All Labels</option>
             {allLabels.map((label) => (
@@ -92,7 +92,7 @@ export const TaskFilters = () => {
           <button
             type="button"
             onClick={resetFilters}
-            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-rose-500 hover:bg-rose-500/10 transition-colors border border-rose-500/30"
+            className="inline-flex items-center gap-1 px-2.5 py-1.5 rounded-lg text-xs text-danger hover:bg-danger-subtle transition-colors border border-danger/30"
           >
             <X className="w-3 h-3" />
             <span>Reset filters</span>
@@ -107,7 +107,7 @@ export const TaskFilters = () => {
           aria-label="Sort cards"
           value={filters.sortBy}
           onChange={(e) => setFilter('sortBy', e.target.value)}
-          className="bg-subtle border border-line-strong rounded-lg px-2.5 py-1.5 text-xs text-ink-secondary focus:outline-none focus:border-brand cursor-pointer"
+          className="bg-canvas border border-line-strong rounded-lg px-2.5 py-1.5 text-xs text-ink-secondary focus:outline-none focus:border-brand focus:ring-2 focus:ring-brand/20 cursor-pointer"
         >
           <option value="position">Manual Order</option>
           <option value="priority">Sort by Priority</option>

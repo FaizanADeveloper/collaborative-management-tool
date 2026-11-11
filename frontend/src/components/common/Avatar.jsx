@@ -47,7 +47,7 @@ export const Avatar = ({
       ) : (
         <div
           aria-label={displayName}
-          className={`${sizes[size] || sizes.md} rounded-full bg-brand text-white font-semibold flex items-center justify-center select-none ${ringClass}`}
+          className={`${sizes[size] || sizes.md} rounded-full bg-brand text-brand-fg font-semibold flex items-center justify-center select-none ${ringClass}`}
         >
           {computedInitials}
         </div>
@@ -68,7 +68,7 @@ export const AvatarGroup = ({ users = [], max = 3, size = 'xs', className = '' }
   };
 
   return (
-    <div className={`flex items-center -space-x-1.5 ${className}`}>
+    <div className={`flex items-center -space-x-1 ${className}`}>
       {visible.map((user, idx) => (
         <Avatar
           key={user.id || user._id || idx}

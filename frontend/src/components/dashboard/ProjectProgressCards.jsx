@@ -16,7 +16,7 @@ export const ProjectProgressCards = () => {
   );
 
   return (
-    <div className="rounded-xl bg-surface border border-line p-5 shadow-sm">
+    <div className="rounded-xl bg-surface border border-line p-5 shadow-card">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
@@ -62,8 +62,8 @@ export const ProjectProgressCards = () => {
                 }}
                 className={`text-left p-4 rounded-xl border transition-colors flex flex-col justify-between gap-3 group ${
                   isActive
-                    ? 'bg-brand-subtle/40 border-brand/40'
-                    : 'bg-subtle/50 hover:bg-subtle border-line hover:border-line-strong'
+                    ? 'bg-brand-subtle border-brand/35'
+                    : 'bg-canvas/70 hover:bg-subtle border-line hover:border-line-strong'
                 }`}
               >
                 <div className="space-y-1">

@@ -31,11 +31,11 @@ export const AssignedTasksList = () => {
   const myCards = allCards.filter((card) => cardIncludesUser(card, user?.id)).slice(0, 6);
 
   return (
-    <div className="rounded-xl bg-surface border border-line p-5 shadow-sm h-full">
+    <div className="rounded-xl bg-surface border border-line p-5 shadow-card h-full">
       <div className="flex items-center justify-between mb-4">
         <div>
           <h3 className="text-sm font-semibold text-ink flex items-center gap-2">
-            <CheckCircle2 className="w-4 h-4 text-emerald-500" />
+            <CheckCircle2 className="w-4 h-4 text-success" />
             <span>Assigned to You</span>
           </h3>
           <p className="text-xs text-ink-muted mt-0.5">
@@ -74,7 +74,7 @@ export const AssignedTasksList = () => {
                   navigate('/board');
                   openCardDetails(card.id);
                 }}
-                className="w-full text-left p-3 rounded-lg bg-subtle/60 hover:bg-subtle border border-line hover:border-line-strong transition-colors flex items-center justify-between gap-3 group"
+                className="w-full text-left p-3 rounded-lg bg-canvas/70 hover:bg-subtle border border-line hover:border-line-strong transition-colors flex items-center justify-between gap-3 group"
               >
                 <div className="min-w-0 flex-1 space-y-1">
                   <div className="flex items-center gap-2 flex-wrap">

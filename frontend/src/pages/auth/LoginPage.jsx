@@ -1,10 +1,11 @@
 import React, { useState } from 'react';
 import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
+import { useUIStore } from '../../store/useUIStore';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
 import { BrandLogo } from '../../components/common/BrandLogo';
-import { Lock, Mail, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { Lock, Mail, Eye, EyeOff, AlertCircle, CheckCircle2, Sun, Moon } from 'lucide-react';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -15,6 +16,7 @@ export const LoginPage = () => {
   const [fieldErrors, setFieldErrors] = useState({});
 
   const { login } = useAuthStore();
+  const { theme, toggleTheme } = useUIStore();
   const navigate = useNavigate();
   const location = useLocation();
   const redirectPath = location.state?.from?.pathname || '/dashboard';
@@ -48,14 +50,29 @@ export const LoginPage = () => {
     <div className="min-h-screen bg-canvas text-ink flex">
       {/* Form Column */}
       <div className="flex-1 flex flex-col justify-between p-6 sm:p-10 lg:p-16 max-w-lg mx-auto w-full">
-        <BrandLogo size="md" />
+        <div className="flex items-center justify-between gap-4">
+          <BrandLogo size="md" />
+          <button
+            type="button"
+            onClick={toggleTheme}
+            aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+            className="p-2 rounded-lg text-ink-muted hover:text-ink hover:bg-subtle border border-transparent hover:border-line transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          >
+            {theme === 'dark' ? (
+              <Sun className="w-4 h-4 text-ink-secondary" />
+            ) : (
+              <Moon className="w-4 h-4 text-ink-secondary" />
+            )}
+          </button>
+        </div>
 
         <div className="my-auto py-8">
           <div className="mb-6">
-            <h1 className="text-2xl font-bold text-ink tracking-tight">
+            <h1 className="text-2xl font-semibold text-ink tracking-tight">
               Sign in to Flowdesk
             </h1>
-            <p className="text-sm text-ink-muted mt-1.5">
+            <p className="text-sm text-ink-secondary mt-1.5">
               Enter your account credentials to access your workspaces and boards.
             </p>
           </div>
@@ -63,7 +80,7 @@ export const LoginPage = () => {
           {formError && (
             <div
               role="alert"
-              className="mb-5 flex items-start gap-2.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3.5 py-2.5 text-xs text-rose-600 dark:text-rose-300"
+              className="mb-5 flex items-start gap-2.5 rounded-lg border border-danger/30 bg-danger-subtle px-3.5 py-2.5 text-xs text-danger"
             >
               <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
               <span>{formError}</span>
@@ -137,13 +154,13 @@ export const LoginPage = () => {
       </div>
 
       {/* Overview Panel */}
-      <div className="hidden lg:flex flex-1 bg-surface border-l border-line p-12 flex-col justify-center">
+      <div className="hidden lg:flex flex-1 bg-sidebar border-l border-line p-12 flex-col justify-center">
         <div className="max-w-md mx-auto space-y-6">
-          <div className="space-y-2">
-            <span className="text-xs font-medium text-brand uppercase tracking-wider">
-              Workspace Hierarchy
+          <div className="space-y-2.5">
+            <span className="inline-flex items-center px-2.5 py-0.5 rounded-md bg-brand-subtle text-brand border border-brand/25 text-[11px] font-medium uppercase tracking-wider">
+              Workspace Structure
             </span>
-            <h2 className="text-2xl font-bold text-ink tracking-tight leading-snug">
+            <h2 className="text-2xl font-semibold text-ink tracking-tight leading-snug">
               Structured execution from workspace to individual cards.
             </h2>
             <p className="text-sm text-ink-secondary leading-relaxed">
@@ -151,14 +168,14 @@ export const LoginPage = () => {
             </p>
           </div>
 
-          <ul className="space-y-3 pt-2">
+          <ul className="rounded-xl bg-surface border border-line p-5 shadow-card space-y-3">
             {[
               'Role-based workspace membership & invite codes',
               'Dynamic boards, ordered lists, and card positioning',
               'Persistent drag-and-drop workflows backed by MongoDB Atlas',
             ].map((item) => (
-              <li key={item} className="flex items-center gap-2.5 text-sm text-ink-secondary">
-                <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" aria-hidden="true" />
+              <li key={item} className="flex items-start gap-2.5 text-sm text-ink-secondary">
+                <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0 mt-0.5" aria-hidden="true" />
                 <span>{item}</span>
               </li>
             ))}

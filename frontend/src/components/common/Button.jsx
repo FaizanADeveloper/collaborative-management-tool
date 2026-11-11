@@ -21,17 +21,17 @@ export const Button = React.forwardRef(
 
     const variants = {
       primary:
-        'bg-brand hover:bg-brand-hover text-white border border-transparent shadow-sm',
+        'bg-brand hover:bg-brand-hover text-brand-fg border border-transparent shadow-card',
       secondary:
-        'bg-subtle hover:bg-line text-ink border border-line-strong',
+        'bg-surface hover:bg-subtle text-ink border border-line-strong shadow-card',
       ghost:
         'bg-transparent hover:bg-subtle text-ink-secondary hover:text-ink border border-transparent',
       danger:
-        'bg-rose-600 hover:bg-rose-700 text-white border border-transparent shadow-sm focus-visible:ring-rose-500',
+        'bg-danger-solid hover:bg-danger-hover text-white border border-transparent shadow-card focus-visible:ring-danger',
       outline:
         'bg-transparent hover:bg-brand-subtle text-brand border border-brand/40',
       subtle:
-        'bg-brand-subtle hover:bg-brand/20 text-brand border border-brand/20',
+        'bg-brand-subtle hover:bg-brand/20 text-brand border border-brand/25',
     };
 
     const sizes = {

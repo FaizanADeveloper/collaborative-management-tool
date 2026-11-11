@@ -11,6 +11,7 @@ import {
   Sun,
   Moon,
   ChevronDown,
+  ChevronRight,
   Settings,
   LogOut,
   Menu,
@@ -57,28 +58,28 @@ export const Navbar = () => {
 
   return (
     <header
-      className={`fixed top-0 right-0 left-0 h-14 bg-surface/95 backdrop-blur-sm border-b border-line z-30 px-4 flex items-center justify-between select-none transition-all duration-200 ${
+      className={`fixed top-0 right-0 left-0 h-14 bg-canvas/95 backdrop-blur-[2px] border-b border-line z-30 px-4 sm:px-6 flex items-center justify-between gap-3 select-none transition-all duration-200 ${
         sidebarCollapsed ? 'lg:left-16' : 'lg:left-60'
       }`}
     >
       {/* Left Breadcrumb & Mobile Menu */}
-      <div className="flex items-center gap-3 min-w-0">
+      <div className="flex items-center gap-2.5 min-w-0 flex-1">
         <button
           type="button"
           onClick={openMobileSidebar}
           aria-label="Open navigation menu"
-          className="p-1.5 rounded-lg text-ink-muted hover:text-ink hover:bg-subtle lg:hidden focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="p-1.5 rounded-lg text-ink-muted hover:text-ink hover:bg-subtle lg:hidden flex-shrink-0 focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           <Menu className="w-5 h-5" />
         </button>
 
-        <div className="flex items-center gap-2 text-xs sm:text-sm font-medium text-ink-muted min-w-0">
+        <div className="flex items-center gap-1.5 text-xs sm:text-sm font-medium text-ink-muted min-w-0">
           <span className="font-semibold text-ink hidden sm:inline truncate">
             {activeWorkspace?.name || 'Workspace'}
           </span>
           {currentBoard && (
             <>
-              <span className="text-line-strong hidden sm:inline">/</span>
+              <ChevronRight className="w-3.5 h-3.5 text-ink-muted/70 flex-shrink-0 hidden sm:inline" aria-hidden="true" />
               <span className="text-ink-secondary truncate">
                 {currentBoard.name}
               </span>
@@ -88,18 +89,18 @@ export const Navbar = () => {
       </div>
 
       {/* Right Controls */}
-      <div className="flex items-center gap-2">
+      <div className="flex items-center gap-2 flex-shrink-0">
         <button
           type="button"
           onClick={openCommandPalette}
           aria-label="Open quick search"
-          className="flex items-center gap-3 px-2.5 py-1.5 rounded-lg bg-subtle border border-line hover:border-line-strong text-ink-muted hover:text-ink transition-colors text-xs focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
+          className="flex items-center gap-3 px-2.5 py-1.5 rounded-lg bg-surface border border-line hover:border-line-strong text-ink-muted hover:text-ink transition-colors text-xs shadow-card focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           <div className="flex items-center gap-1.5">
             <Search className="w-3.5 h-3.5" aria-hidden="true" />
             <span className="hidden md:inline">Quick jump...</span>
           </div>
-          <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-surface text-ink-muted border border-line rounded">
+          <kbd className="hidden sm:inline-block px-1.5 py-0.5 text-[10px] font-mono bg-subtle text-ink-muted border border-line rounded">
             Ctrl+K
           </kbd>
         </button>
@@ -123,7 +124,7 @@ export const Navbar = () => {
           className="p-2 rounded-lg text-ink-muted hover:text-ink hover:bg-subtle transition-colors focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
         >
           {theme === 'dark' ? (
-            <Sun className="w-4 h-4 text-amber-400" />
+            <Sun className="w-4 h-4 text-ink-secondary" />
           ) : (
             <Moon className="w-4 h-4 text-ink-secondary" />
           )}
@@ -147,7 +148,7 @@ export const Navbar = () => {
           {profileOpen && (
             <div
               role="menu"
-              className="absolute right-0 mt-2 w-56 rounded-xl bg-elevated border border-line-strong shadow-xl py-1.5 z-50"
+              className="absolute right-0 mt-2 w-56 rounded-xl bg-elevated border border-line-strong shadow-popover py-1.5 z-50"
             >
               <div className="px-3 py-2 border-b border-line">
                 <p className="text-xs font-semibold text-ink truncate">
@@ -174,7 +175,7 @@ export const Navbar = () => {
                   type="button"
                   role="menuitem"
                   onClick={handleLogout}
-                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-rose-500 hover:bg-rose-500/10 transition-colors"
+                  className="w-full flex items-center gap-2 px-3 py-2 text-xs text-danger hover:bg-danger-subtle transition-colors"
                 >
                   <LogOut className="w-3.5 h-3.5" />
                   <span>Sign Out</span>

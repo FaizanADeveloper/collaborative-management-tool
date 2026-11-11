@@ -23,7 +23,7 @@ export const BrandMark = ({ size = 'md', className = '' }) => {
 
   return (
     <span
-      className={`inline-flex items-center justify-center bg-brand text-white flex-shrink-0 ${dims.box} ${className}`}
+      className={`inline-flex items-center justify-center bg-brand text-brand-fg flex-shrink-0 ${dims.box} ${className}`}
       aria-hidden="true"
     >
       <svg

@@ -9,16 +9,16 @@ export const ToastContainer = () => {
 
   const styles = {
     success:
-      'bg-elevated border-emerald-500/40 text-ink',
+      'bg-elevated border-success/40 text-ink',
     error:
-      'bg-elevated border-rose-500/40 text-ink',
+      'bg-elevated border-danger/40 text-ink',
     info:
       'bg-elevated border-line-strong text-ink',
   };
 
   const icons = {
-    success: <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" />,
-    error: <AlertCircle className="w-4 h-4 text-rose-500 flex-shrink-0" />,
+    success: <CheckCircle2 className="w-4 h-4 text-success flex-shrink-0" />,
+    error: <AlertCircle className="w-4 h-4 text-danger flex-shrink-0" />,
     info: <Info className="w-4 h-4 text-brand flex-shrink-0" />,
   };
 
@@ -31,7 +31,7 @@ export const ToastContainer = () => {
         <div
           key={toast.id}
           role={toast.type === 'error' ? 'alert' : 'status'}
-          className={`pointer-events-auto flex items-start gap-2.5 rounded-xl border p-3.5 shadow-lg ${
+          className={`pointer-events-auto flex items-start gap-2.5 rounded-xl border p-3.5 shadow-popover ${
             styles[toast.type] || styles.info
           }`}
         >

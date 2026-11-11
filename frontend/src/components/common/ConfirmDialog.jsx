@@ -21,8 +21,8 @@ export const ConfirmDialog = ({
           <div
             className={`p-2 rounded-lg flex-shrink-0 ${
               variant === 'danger'
-                ? 'bg-rose-50 text-rose-600 dark:bg-rose-950/50 dark:text-rose-400'
-                : 'bg-amber-50 text-amber-600 dark:bg-amber-950/50 dark:text-amber-400'
+                ? 'bg-danger-subtle text-danger border border-danger/25'
+                : 'bg-warning-subtle text-warning border border-warning/25'
             }`}
           >
             <AlertTriangle className="w-4 h-4" aria-hidden="true" />
