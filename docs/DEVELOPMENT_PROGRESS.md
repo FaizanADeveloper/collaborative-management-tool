@@ -48,12 +48,24 @@ Tracks verified implementation milestones, testing, builds, and commit history f
 - **Testing & Build:**
   - Frontend tests (`npm.cmd --prefix frontend test`): 3 test files, 14/14 tests passed (`apiClient.test.js`, `App.test.jsx`, `AuthFlow.test.jsx`).
   - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 926ms).
+- **Commit:**
+  - `023ce56` — `feat(frontend): implement centralized API client and JWT authentication`
+
+**Milestone 4 (Workspace Management & Role-Based Membership):**
+- **Completed:**
+  - Created `frontend/src/services/workspaceService.js` for workspace CRUD, member lookup, invite code generation, invite-based joining, and member removal/leave operations.
+  - Replaced mock-seeded `localStorage` data in `frontend/src/store/useWorkspaceStore.js` with live API state, race-safe workspace context loading, and automatic logout cleanup registration.
+  - Created `WorkspaceCreateModal.jsx` and `JoinWorkspaceModal.jsx` and wired workspace switching, creation, and joining inside `Sidebar.jsx` and `App.jsx`.
+  - Refactored `TeamPage.jsx` and `SettingsPage.jsx` with dual-theme styling, RBAC-aware invite management, `ConfirmDialog` flows for member removal, leaving workspaces, and owner-only workspace deletion, removing fake presence/notifications/reset controls.
+- **Testing & Build:**
+  - Frontend tests (`npm.cmd --prefix frontend test`): 4 test files, 19/19 tests passed (`WorkspaceFlow.test.jsx` added).
+  - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 818ms).
 
 **Remaining work:**
-- Replace mocked `localStorage` workspace, board, list, and card stores with live REST API integration and persistent drag-and-drop.
-- Build dynamic Workspace -> Board -> List -> Card workflows with role-based permissions and confirmation dialogs.
+- Replace remaining legacy board/list/card views with dynamic `Workspace -> Board -> List -> Card` stores and workflows.
+- Implement persistent card positioning and drag-and-drop with optimistic rollback handling.
 - Refactor Dashboard analytics, Command Palette, and responsive states around real MongoDB Atlas data.
 - Add comprehensive frontend component/integration coverage, run end-to-end live verification, and evaluate scoped Week 3 real-time sync.
 
 **Next session:**
-- Implement Milestone 4 (Real workspace creation, switching, invite code generation/joining, member management, and workspace settings).
+- Implement Milestone 5 (Dynamic Board and List CRUD, ordering, empty states, and confirmation dialogs).

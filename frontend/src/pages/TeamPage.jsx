@@ -1,201 +1,325 @@
 import React, { useState } from 'react';
 import { useWorkspaceStore } from '../store/useWorkspaceStore';
+import { useAuthStore } from '../store/useAuthStore';
+import { useUIStore } from '../store/useUIStore';
 import { Avatar } from '../components/common/Avatar';
 import { Button } from '../components/common/Button';
-import { Modal } from '../components/common/Modal';
-import { Input, Select } from '../components/common/Input';
+import { RoleBadge } from '../components/common/Badge';
+import { EmptyState } from '../components/common/EmptyState';
+import { Skeleton } from '../components/common/Skeleton';
+import { ConfirmDialog } from '../components/common/ConfirmDialog';
 import {
   Users,
-  UserPlus,
+  Plus,
+  KeyRound,
   Mail,
+  Copy,
+  RefreshCw,
+  UserMinus,
+  LogOut,
   Shield,
-  Briefcase,
-  CheckCircle2,
-  Clock,
-  Sparkles
+  Calendar,
 } from 'lucide-react';
-import { useNavigate } from 'react-router-dom';
 
 export const TeamPage = () => {
-  const { users, tasks, setFilter, resetFilters } = useWorkspaceStore();
-  const [inviteModalOpen, setInviteModalOpen] = useState(false);
-  const [inviteEmail, setInviteEmail] = useState('');
-  const [inviteRole, setInviteRole] = useState('Frontend Engineer');
-  const [inviteSuccess, setInviteSuccess] = useState(false);
-  const navigate = useNavigate();
+  const { user } = useAuthStore();
+  const {
+    workspaces,
+    activeWorkspaceId,
+    activeWorkspaceDetails,
+    members,
+    isLoadingWorkspaces,
+    isLoadingMembers,
+    workspaceError,
+    regenerateInviteCode,
+    removeMember,
+  } = useWorkspaceStore();
+  const { openCreateWorkspace, openJoinWorkspace, addToast } = useUIStore();
 
-  const handleInvite = (e) => {
-    e.preventDefault();
-    if (inviteEmail) {
-      setInviteSuccess(true);
-      setTimeout(() => {
-        setInviteSuccess(false);
-        setInviteEmail('');
-        setInviteModalOpen(false);
-      }, 1500);
+  const [isRegenerating, setIsRegenerating] = useState(false);
+  const [confirmTarget, setConfirmTarget] = useState(null);
+  const [isRemoving, setIsRemoving] = useState(false);
+
+  const activeWorkspace =
+    activeWorkspaceDetails || workspaces.find((w) => w.id === activeWorkspaceId) || null;
+  const currentUserRole = activeWorkspace?.role;
+  const canManageWorkspace = currentUserRole === 'owner' || currentUserRole === 'admin';
+
+  const handleCopyInviteCode = async () => {
+    const code = activeWorkspace?.inviteCode;
+    if (!code) return;
+    try {
+      await navigator.clipboard?.writeText(code);
+      addToast({
+        type: 'success',
+        title: 'Invite code copied',
+        message: 'Share this code with teammates so they can join the workspace.',
+      });
+    } catch {
+      addToast({
+        type: 'info',
+        title: 'Invite code',
+        message: `Use code: ${code}`,
+      });
     }
   };
 
-  const handleViewMemberTasks = (userId) => {
-    resetFilters();
-    setFilter('assigneeId', userId);
-    navigate('/board');
+  const handleRegenerateInvite = async () => {
+    if (!activeWorkspace) return;
+    setIsRegenerating(true);
+    const result = await regenerateInviteCode(activeWorkspace.id);
+    setIsRegenerating(false);
+
+    if (!result.success) {
+      addToast({
+        type: 'error',
+        title: 'Unable to regenerate code',
+        message: result.error,
+      });
+      return;
+    }
+
+    addToast({
+      type: 'success',
+      title: 'Invite code updated',
+      message: `New invitation code: ${result.inviteCode}`,
+    });
   };
+
+  const canRemoveTargetMember = (member) => {
+    if (!user?.id || !member?.id) return false;
+    const isSelf = member.id === user.id;
+    if (isSelf) {
+      return member.role !== 'owner';
+    }
+    if (currentUserRole === 'owner') {
+      return member.role !== 'owner';
+    }
+    if (currentUserRole === 'admin') {
+      return member.role === 'member';
+    }
+    return false;
+  };
+
+  const handleConfirmRemoval = async () => {
+    if (!confirmTarget || !activeWorkspace) return;
+    setIsRemoving(true);
+    const isSelf = confirmTarget.id === user?.id;
+    const result = await removeMember(activeWorkspace.id, confirmTarget.id, user?.id);
+    setIsRemoving(false);
+
+    if (!result.success) {
+      addToast({
+        type: 'error',
+        title: isSelf ? 'Unable to leave workspace' : 'Unable to remove member',
+        message: result.error,
+      });
+      return;
+    }
+
+    addToast({
+      type: 'success',
+      title: isSelf ? 'Left workspace' : 'Member removed',
+      message: isSelf
+        ? `You are no longer a member of ${activeWorkspace.name}.`
+        : `${confirmTarget.name} was removed from ${activeWorkspace.name}.`,
+    });
+    setConfirmTarget(null);
+  };
+
+  if (isLoadingWorkspaces) {
+    return (
+      <div className="space-y-6">
+        <Skeleton className="h-10 w-64" />
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Skeleton className="h-40 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
+          <Skeleton className="h-40 w-full rounded-xl" />
+        </div>
+      </div>
+    );
+  }
+
+  if (!activeWorkspace) {
+    return (
+      <EmptyState
+        icon={Users}
+        title="No active workspace"
+        description="Create a new workspace or join an existing team with an invite code to view and manage collaborators."
+        actionLabel="Create Workspace"
+        onAction={openCreateWorkspace}
+        secondaryActionLabel="Join with Invite Code"
+        onSecondaryAction={openJoinWorkspace}
+      />
+    );
+  }
 
   return (
     <div className="space-y-6">
-      {/* Header */}
       <div className="flex flex-wrap items-center justify-between gap-4">
         <div>
-          <h1 className="text-xl sm:text-2xl font-bold text-white tracking-tight">
-            Team Workspace & Presence
-          </h1>
-          <p className="text-xs sm:text-sm text-slate-400 mt-1">
-            Real-time collaborator presence, capacity utilization, and assigned ownership.
+          <div className="flex items-center gap-2.5">
+            <h1 className="text-xl sm:text-2xl font-bold text-ink tracking-tight">
+              Team & Membership
+            </h1>
+            {currentUserRole && <RoleBadge role={currentUserRole} />}
+          </div>
+          <p className="text-xs sm:text-sm text-ink-muted mt-1">
+            Manage collaborators and invitations for <strong className="text-ink">{activeWorkspace.name}</strong>.
           </p>
         </div>
 
-        <Button
-          variant="primary"
-          icon={UserPlus}
-          onClick={() => setInviteModalOpen(true)}
+        <div className="flex flex-wrap items-center gap-2">
+          <Button variant="secondary" icon={KeyRound} onClick={openJoinWorkspace}>
+            Join Another Workspace
+          </Button>
+          <Button variant="primary" icon={Plus} onClick={openCreateWorkspace}>
+            New Workspace
+          </Button>
+        </div>
+      </div>
+
+      {workspaceError && (
+        <div
+          role="alert"
+          className="rounded-xl bg-rose-500/10 border border-rose-500/30 p-4 text-xs text-rose-500"
         >
-          Invite Teammate
-        </Button>
-      </div>
+          {workspaceError}
+        </div>
+      )}
 
-      {/* Team Members Grid */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-5">
-        {users.map((member) => {
-          const memberTasks = tasks.filter(t => t.assigneeId === member.id);
-          const activeTasks = memberTasks.filter(t => t.status !== 'completed').length;
-          const completedTasks = memberTasks.filter(t => t.status === 'completed').length;
-          const totalPoints = memberTasks.reduce((acc, t) => acc + (t.storyPoints || 0), 0);
-
-          return (
-            <div
-              key={member.id}
-              className="rounded-xl bg-slate-900/60 border border-slate-800/80 p-5 shadow-sm flex flex-col justify-between hover:border-slate-700 transition-all"
-            >
-              <div>
-                <div className="flex items-start justify-between gap-3 mb-4">
-                  <div className="flex items-center gap-3">
-                    <Avatar user={member} size="lg" />
-                    <div className="min-w-0">
-                      <h3 className="text-sm font-bold text-white truncate">
-                        {member.name}
-                      </h3>
-                      <p className="text-xs text-indigo-400 font-medium truncate">
-                        {member.role}
-                      </p>
-                      <span className="text-[11px] text-slate-400 block truncate">
-                        {member.department}
-                      </span>
-                    </div>
-                  </div>
-
-                  <span
-                    className={`px-2 py-0.5 rounded-full text-[10px] font-mono capitalize ${
-                      member.status === 'online'
-                        ? 'bg-emerald-950/60 text-emerald-400 border border-emerald-800/40'
-                        : member.status === 'away'
-                        ? 'bg-amber-950/60 text-amber-400 border border-amber-800/40'
-                        : 'bg-slate-800 text-slate-400'
-                    }`}
-                  >
-                    ● {member.status}
-                  </span>
-                </div>
-
-                <div className="flex items-center gap-1.5 text-xs text-slate-400 mb-4">
-                  <Mail className="w-3.5 h-3.5 text-slate-500" />
-                  <span className="truncate">{member.email}</span>
-                </div>
-              </div>
-
-              <div className="space-y-3 pt-3 border-t border-slate-800/60">
-                {/* Workload metric */}
-                <div className="space-y-1">
-                  <div className="flex items-center justify-between text-xs font-mono">
-                    <span className="text-slate-400">Sprint Capacity</span>
-                    <span className="text-slate-200 font-semibold">{totalPoints} story pts</span>
-                  </div>
-                  <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                    <div
-                      className="h-full bg-indigo-500 rounded-full"
-                      style={{ width: `${Math.min(100, (totalPoints / 25) * 100)}%` }}
-                    />
-                  </div>
-                </div>
-
-                <div className="flex items-center justify-between pt-1">
-                  <span className="text-xs text-slate-400">
-                    <strong className="text-slate-200">{activeTasks}</strong> in-flight • <strong className="text-emerald-400">{completedTasks}</strong> done
-                  </span>
-
-                  <button
-                    onClick={() => handleViewMemberTasks(member.id)}
-                    className="text-xs font-medium text-indigo-400 hover:text-indigo-300 transition-colors"
-                  >
-                    View Issues →
-                  </button>
-                </div>
-              </div>
+      {/* Workspace Invitation Panel */}
+      <div className="rounded-xl bg-surface border border-line p-5 shadow-sm">
+        <div className="flex flex-wrap items-center justify-between gap-4">
+          <div className="space-y-1">
+            <div className="flex items-center gap-2">
+              <Shield className="w-4 h-4 text-brand" />
+              <h2 className="text-sm font-semibold text-ink">Workspace Invitation Code</h2>
             </div>
-          );
-        })}
-      </div>
-
-      {/* Invite Member Modal */}
-      <Modal
-        isOpen={inviteModalOpen}
-        onClose={() => setInviteModalOpen(false)}
-        title="Invite Collaborator to Workspace"
-        subtitle="Grant role-based access to projects, boards, and real-time sprint sessions."
-        maxWidth="max-w-md"
-      >
-        {inviteSuccess ? (
-          <div className="py-8 text-center space-y-2">
-            <CheckCircle2 className="w-12 h-12 text-emerald-400 mx-auto" />
-            <h4 className="text-base font-bold text-white">Invitation Dispatched!</h4>
-            <p className="text-xs text-slate-400">A magic login link has been sent to {inviteEmail}.</p>
+            <p className="text-xs text-ink-muted">
+              {canManageWorkspace
+                ? 'Teammates can use this code under "Join with Invite Code" to become workspace members.'
+                : 'Workspace owners and admins manage invitation codes.'}
+            </p>
           </div>
-        ) : (
-          <form onSubmit={handleInvite} className="space-y-4">
-            <Input
-              label="Work Email *"
-              type="email"
-              placeholder="e.g. colleague@acme.corp"
-              value={inviteEmail}
-              onChange={(e) => setInviteEmail(e.target.value)}
-              required
-              autoFocus
-            />
 
-            <Select
-              label="Team Role"
-              value={inviteRole}
-              onChange={(e) => setInviteRole(e.target.value)}
-            >
-              <option value="Senior Frontend Engineer">Senior Frontend Engineer</option>
-              <option value="Backend Engineer">Backend Engineer</option>
-              <option value="Product Designer">Product Designer</option>
-              <option value="Product Manager">Product Manager</option>
-              <option value="QA Engineer">QA Automation Engineer</option>
-            </Select>
-
-            <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
-              <Button type="button" variant="ghost" onClick={() => setInviteModalOpen(false)}>
-                Cancel
+          {canManageWorkspace && (
+            <div className="flex flex-wrap items-center gap-2">
+              <div className="px-3 py-1.5 rounded-lg bg-subtle border border-line-strong font-mono text-sm font-semibold text-ink tracking-wider">
+                {activeWorkspace.inviteCode || 'Unavailable'}
+              </div>
+              <Button
+                variant="secondary"
+                size="sm"
+                icon={Copy}
+                onClick={handleCopyInviteCode}
+                disabled={!activeWorkspace.inviteCode}
+              >
+                Copy
               </Button>
-              <Button type="submit" variant="primary">
-                Send Invitation
+              <Button
+                variant="ghost"
+                size="sm"
+                icon={RefreshCw}
+                onClick={handleRegenerateInvite}
+                loading={isRegenerating}
+              >
+                Regenerate
               </Button>
             </div>
-          </form>
-        )}
-      </Modal>
+          )}
+        </div>
+      </div>
+
+      {/* Members List */}
+      {isLoadingMembers ? (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          <Skeleton className="h-36 w-full rounded-xl" />
+          <Skeleton className="h-36 w-full rounded-xl" />
+          <Skeleton className="h-36 w-full rounded-xl" />
+        </div>
+      ) : members.length === 0 ? (
+        <EmptyState
+          icon={Users}
+          title="No members loaded"
+          description="Members belonging to this workspace will appear here."
+        />
+      ) : (
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+          {members.map((member) => {
+            const isSelf = member.id === user?.id;
+            const canAct = canRemoveTargetMember(member);
+            const joinedLabel = member.joinedAt
+              ? new Date(member.joinedAt).toLocaleDateString()
+              : null;
+
+            return (
+              <div
+                key={member.id}
+                className="rounded-xl bg-surface border border-line p-5 shadow-sm flex flex-col justify-between gap-4"
+              >
+                <div className="space-y-3">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex items-center gap-3 min-w-0">
+                      <Avatar user={member} size="lg" />
+                      <div className="min-w-0">
+                        <h3 className="text-sm font-semibold text-ink truncate">
+                          {member.name} {isSelf && <span className="text-xs text-ink-muted font-normal">(You)</span>}
+                        </h3>
+                        <div className="flex items-center gap-1.5 text-xs text-ink-muted mt-0.5">
+                          <Mail className="w-3.5 h-3.5 flex-shrink-0" />
+                          <span className="truncate">{member.email}</span>
+                        </div>
+                      </div>
+                    </div>
+                    <RoleBadge role={member.role} />
+                  </div>
+
+                  {joinedLabel && (
+                    <div className="flex items-center gap-1.5 text-xs text-ink-muted pt-2 border-t border-line">
+                      <Calendar className="w-3.5 h-3.5" />
+                      <span>Joined {joinedLabel}</span>
+                    </div>
+                  )}
+                </div>
+
+                {canAct && (
+                  <div className="flex justify-end pt-2 border-t border-line">
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      icon={isSelf ? LogOut : UserMinus}
+                      className="text-rose-500 hover:bg-rose-500/10 hover:text-rose-500"
+                      onClick={() => setConfirmTarget(member)}
+                    >
+                      {isSelf ? 'Leave Workspace' : 'Remove'}
+                    </Button>
+                  </div>
+                )}
+              </div>
+            );
+          })}
+        </div>
+      )}
+
+      <ConfirmDialog
+        isOpen={Boolean(confirmTarget)}
+        onClose={() => setConfirmTarget(null)}
+        onConfirm={handleConfirmRemoval}
+        loading={isRemoving}
+        variant="danger"
+        title={
+          confirmTarget?.id === user?.id
+            ? `Leave ${activeWorkspace.name}?`
+            : `Remove ${confirmTarget?.name}?`
+        }
+        description={
+          confirmTarget?.id === user?.id
+            ? 'You will lose access to boards and cards in this workspace until re-invited.'
+            : `${confirmTarget?.name} will lose access to this workspace and its boards.`
+        }
+        confirmLabel={confirmTarget?.id === user?.id ? 'Leave Workspace' : 'Remove Member'}
+      />
     </div>
   );
 };
-

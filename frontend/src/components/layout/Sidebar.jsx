@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useState, useRef, useEffect } from 'react';
 import { NavLink, useNavigate } from 'react-router-dom';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import { useUIStore } from '../../store/useUIStore';
+import { RoleBadge } from '../common/Badge';
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -12,6 +13,7 @@ import {
   ChevronLeft,
   ChevronRight,
   Plus,
+  KeyRound,
   Zap,
   Check,
   X,
@@ -26,6 +28,7 @@ export const Sidebar = () => {
     projects = [],
     activeProjectId,
     setActiveProjectId,
+    isLoadingWorkspaces,
   } = useWorkspaceStore();
 
   const {
@@ -34,12 +37,25 @@ export const Sidebar = () => {
     toggleSidebar,
     closeMobileSidebar,
     openCreateProject,
+    openCreateWorkspace,
+    openJoinWorkspace,
   } = useUIStore();
 
   const [workspaceMenuOpen, setWorkspaceMenuOpen] = useState(false);
+  const menuRef = useRef(null);
 
   const activeWorkspace =
     workspaces.find((w) => w.id === activeWorkspaceId) || workspaces[0];
+
+  useEffect(() => {
+    const handleClickOutside = (e) => {
+      if (menuRef.current && !menuRef.current.contains(e.target)) {
+        setWorkspaceMenuOpen(false);
+      }
+    };
+    document.addEventListener('mousedown', handleClickOutside);
+    return () => document.removeEventListener('mousedown', handleClickOutside);
+  }, []);
 
   const navLinks = [
     { name: 'Dashboard', path: '/dashboard', icon: LayoutDashboard },
@@ -71,7 +87,7 @@ export const Sidebar = () => {
       >
         <div className="flex flex-col min-h-0 flex-1">
           {/* Workspace Switcher Header */}
-          <div className="h-14 px-3 flex items-center justify-between border-b border-line relative">
+          <div ref={menuRef} className="h-14 px-3 flex items-center justify-between border-b border-line relative">
             <button
               type="button"
               onClick={() => setWorkspaceMenuOpen((prev) => !prev)}
@@ -86,10 +102,14 @@ export const Sidebar = () => {
               {!sidebarCollapsed && (
                 <div className="flex flex-col min-w-0 flex-1">
                   <span className="text-sm font-semibold text-ink truncate leading-tight">
-                    {activeWorkspace?.name || 'SyncFlow'}
+                    {activeWorkspace?.name || 'Select Workspace'}
                   </span>
-                  <span className="text-[11px] text-ink-muted truncate">
-                    {activeWorkspace?.role ? `${activeWorkspace.role}` : 'Workspace'}
+                  <span className="text-[11px] text-ink-muted truncate capitalize">
+                    {isLoadingWorkspaces
+                      ? 'Loading...'
+                      : activeWorkspace?.role
+                      ? `${activeWorkspace.role}`
+                      : 'No active workspace'}
                   </span>
                 </div>
               )}
@@ -111,34 +131,69 @@ export const Sidebar = () => {
             {workspaceMenuOpen && (
               <div
                 role="menu"
-                className="absolute left-3 top-14 w-56 rounded-xl bg-elevated border border-line-strong shadow-xl py-1.5 z-50"
+                className="absolute left-3 top-14 w-60 rounded-xl bg-elevated border border-line-strong shadow-xl py-1.5 z-50"
                 onClick={(e) => e.stopPropagation()}
               >
                 <div className="px-3 py-1.5 border-b border-line text-[11px] font-semibold text-ink-muted uppercase tracking-wider">
                   Workspaces
                 </div>
-                <div className="py-1 max-h-60 overflow-y-auto">
-                  {workspaces.map((ws) => (
-                    <button
-                      type="button"
-                      key={ws.id}
-                      role="menuitem"
-                      onClick={() => {
-                        setActiveWorkspaceId(ws.id);
-                        setWorkspaceMenuOpen(false);
-                      }}
-                      className={`w-full flex items-center justify-between px-3 py-2 text-xs text-left hover:bg-subtle transition-colors ${
-                        ws.id === activeWorkspaceId
-                          ? 'text-brand bg-brand-subtle font-medium'
-                          : 'text-ink-secondary'
-                      }`}
-                    >
-                      <span className="truncate">{ws.name}</span>
-                      {ws.id === activeWorkspaceId && (
-                        <Check className="w-3.5 h-3.5 text-brand flex-shrink-0" />
-                      )}
-                    </button>
-                  ))}
+                <div className="py-1 max-h-56 overflow-y-auto">
+                  {workspaces.length === 0 ? (
+                    <p className="px-3 py-2 text-xs text-ink-muted">
+                      No workspaces yet. Create or join one below.
+                    </p>
+                  ) : (
+                    workspaces.map((ws) => (
+                      <button
+                        type="button"
+                        key={ws.id}
+                        role="menuitem"
+                        onClick={() => {
+                          setActiveWorkspaceId(ws.id);
+                          setWorkspaceMenuOpen(false);
+                        }}
+                        className={`w-full flex items-center justify-between gap-2 px-3 py-2 text-xs text-left hover:bg-subtle transition-colors ${
+                          ws.id === activeWorkspaceId
+                            ? 'text-brand bg-brand-subtle font-medium'
+                            : 'text-ink-secondary'
+                        }`}
+                      >
+                        <span className="truncate flex-1">{ws.name}</span>
+                        <div className="flex items-center gap-1.5 flex-shrink-0">
+                          {ws.role && <RoleBadge role={ws.role} />}
+                          {ws.id === activeWorkspaceId && (
+                            <Check className="w-3.5 h-3.5 text-brand" />
+                          )}
+                        </div>
+                      </button>
+                    ))
+                  )}
+                </div>
+                <div className="border-t border-line mt-1 pt-1 px-1.5 space-y-0.5">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setWorkspaceMenuOpen(false);
+                      openCreateWorkspace();
+                    }}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-ink-secondary hover:text-ink hover:bg-subtle transition-colors"
+                  >
+                    <Plus className="w-3.5 h-3.5 text-brand" />
+                    <span>Create Workspace</span>
+                  </button>
+                  <button
+                    type="button"
+                    role="menuitem"
+                    onClick={() => {
+                      setWorkspaceMenuOpen(false);
+                      openJoinWorkspace();
+                    }}
+                    className="w-full flex items-center gap-2 px-2 py-1.5 rounded-lg text-xs text-ink-secondary hover:text-ink hover:bg-subtle transition-colors"
+                  >
+                    <KeyRound className="w-3.5 h-3.5 text-ink-muted" />
+                    <span>Join with Invite Code</span>
+                  </button>
                 </div>
               </div>
             )}

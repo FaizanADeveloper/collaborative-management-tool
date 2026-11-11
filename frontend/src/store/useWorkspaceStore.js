@@ -1,28 +1,37 @@
 import { create } from 'zustand';
-import { storage, STORAGE_KEYS } from '../services/storageService';
-import {
-  initialUsers,
-  initialWorkspaces,
-  initialProjects,
-  initialTasks,
-  initialActivities,
-} from '../services/mockData';
+import { workspaceService } from '../services/workspaceService';
+import { registerLogoutCleanup } from './useAuthStore';
 
-// Ensure storage is initialized
-storage.initStorage();
+const ACTIVE_WORKSPACE_KEY = 'syncflow_active_workspace_id';
 
-export const useWorkspaceStore = create((set, get) => ({
-  users: initialUsers,
-  workspaces: storage.get(STORAGE_KEYS.WORKSPACES, initialWorkspaces),
-  activeWorkspaceId: storage.get(STORAGE_KEYS.ACTIVE_WORKSPACE_ID, 'ws-2'),
-  
-  projects: storage.get(STORAGE_KEYS.PROJECTS, initialProjects),
-  activeProjectId: 'proj-1', // Default to PulseSync Core Engine
-  
-  tasks: storage.get(STORAGE_KEYS.TASKS, initialTasks),
-  activities: storage.get(STORAGE_KEYS.ACTIVITIES, initialActivities),
+const readSavedWorkspaceId = () => {
+  try {
+    return window.localStorage?.getItem(ACTIVE_WORKSPACE_KEY) || null;
+  } catch {
+    return null;
+  }
+};
 
-  // Filters
+const writeSavedWorkspaceId = (id) => {
+  try {
+    if (id) {
+      window.localStorage?.setItem(ACTIVE_WORKSPACE_KEY, id);
+    } else {
+      window.localStorage?.removeItem(ACTIVE_WORKSPACE_KEY);
+    }
+  } catch {
+    // Ignore storage write errors in restricted environments
+  }
+};
+
+let contextRequestCounter = 0;
+
+const initialTransitionalState = {
+  // Transitional empty collections until Milestones 5-7 migrate Board/List/Card views to useBoardStore
+  projects: [],
+  activeProjectId: null,
+  tasks: [],
+  activities: [],
   filters: {
     search: '',
     priority: 'all',
@@ -30,28 +39,323 @@ export const useWorkspaceStore = create((set, get) => ({
     tag: 'all',
     sortBy: 'default',
   },
+};
 
-  setActiveWorkspaceId: (id) => {
-    storage.set(STORAGE_KEYS.ACTIVE_WORKSPACE_ID, id);
-    // Auto select first project in this workspace if any
-    const firstProj = get().projects.find(p => p.workspaceId === id);
+export const useWorkspaceStore = create((set, get) => ({
+  workspaces: [],
+  activeWorkspaceId: readSavedWorkspaceId(),
+  activeWorkspaceDetails: null,
+  members: [],
+  users: [],
+  isLoadingWorkspaces: false,
+  isLoadingMembers: false,
+  hasLoadedWorkspaces: false,
+  workspaceError: null,
+
+  ...initialTransitionalState,
+
+  fetchWorkspaces: async () => {
+    set({ isLoadingWorkspaces: true, workspaceError: null });
+    try {
+      const workspaces = await workspaceService.listWorkspaces();
+      const currentActiveId = get().activeWorkspaceId;
+      const matched = workspaces.find((ws) => ws.id === currentActiveId);
+      const nextActiveId = matched ? matched.id : workspaces[0]?.id || null;
+
+      writeSavedWorkspaceId(nextActiveId);
+      set({
+        workspaces,
+        activeWorkspaceId: nextActiveId,
+        isLoadingWorkspaces: false,
+        hasLoadedWorkspaces: true,
+        workspaceError: null,
+      });
+
+      if (nextActiveId) {
+        await get().fetchWorkspaceContext(nextActiveId);
+      } else {
+        set({
+          activeWorkspaceDetails: null,
+          members: [],
+          users: [],
+          isLoadingMembers: false,
+        });
+      }
+
+      return workspaces;
+    } catch (err) {
+      set({
+        isLoadingWorkspaces: false,
+        hasLoadedWorkspaces: true,
+        workspaceError: err.message || 'Failed to load workspaces',
+      });
+      return [];
+    }
+  },
+
+  fetchWorkspaceContext: async (workspaceId) => {
+    if (!workspaceId) {
+      set({
+        activeWorkspaceDetails: null,
+        members: [],
+        users: [],
+        isLoadingMembers: false,
+      });
+      return null;
+    }
+
+    const requestId = ++contextRequestCounter;
+    set({ isLoadingMembers: true, workspaceError: null });
+    try {
+      const [details, members] = await Promise.all([
+        workspaceService.getWorkspace(workspaceId),
+        workspaceService.getWorkspaceMembers(workspaceId),
+      ]);
+
+      if (requestId !== contextRequestCounter) {
+        return null;
+      }
+
+      set((state) => ({
+        activeWorkspaceDetails: details,
+        members,
+        users: members,
+        isLoadingMembers: false,
+        workspaces: details
+          ? state.workspaces.map((ws) =>
+              ws.id === details.id ? { ...ws, ...details } : ws
+            )
+          : state.workspaces,
+      }));
+
+      return { details, members };
+    } catch (err) {
+      if (requestId !== contextRequestCounter) {
+        return null;
+      }
+      set({
+        isLoadingMembers: false,
+        workspaceError: err.message || 'Failed to load workspace details',
+      });
+      return null;
+    }
+  },
+
+  setActiveWorkspaceId: async (id) => {
+    if (!id) {
+      writeSavedWorkspaceId(null);
+      set({
+        activeWorkspaceId: null,
+        activeWorkspaceDetails: null,
+        members: [],
+        users: [],
+      });
+      return;
+    }
+
+    writeSavedWorkspaceId(id);
+    set({ activeWorkspaceId: id });
+    await get().fetchWorkspaceContext(id);
+  },
+
+  createWorkspace: async ({ name, description }) => {
+    try {
+      const workspace = await workspaceService.createWorkspace({ name, description });
+      if (!workspace) {
+        return { success: false, error: 'Failed to create workspace', fieldErrors: {} };
+      }
+
+      writeSavedWorkspaceId(workspace.id);
+      set((state) => ({
+        workspaces: [workspace, ...state.workspaces.filter((w) => w.id !== workspace.id)],
+        activeWorkspaceId: workspace.id,
+        activeWorkspaceDetails: workspace,
+        hasLoadedWorkspaces: true,
+        workspaceError: null,
+      }));
+
+      await get().fetchWorkspaceContext(workspace.id);
+      return { success: true, workspace };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.message || 'Failed to create workspace',
+        fieldErrors: err.fieldErrors || {},
+      };
+    }
+  },
+
+  updateWorkspace: async (id, { name, description }) => {
+    try {
+      const updated = await workspaceService.updateWorkspace(id, { name, description });
+      if (!updated) {
+        return { success: false, error: 'Failed to update workspace', fieldErrors: {} };
+      }
+
+      set((state) => ({
+        workspaces: state.workspaces.map((ws) =>
+          ws.id === id ? { ...ws, ...updated } : ws
+        ),
+        activeWorkspaceDetails:
+          state.activeWorkspaceDetails?.id === id
+            ? { ...state.activeWorkspaceDetails, ...updated }
+            : state.activeWorkspaceDetails,
+      }));
+
+      return { success: true, workspace: updated };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.message || 'Failed to update workspace',
+        fieldErrors: err.fieldErrors || {},
+      };
+    }
+  },
+
+  deleteWorkspace: async (id) => {
+    try {
+      await workspaceService.deleteWorkspace(id);
+      const remaining = get().workspaces.filter((ws) => ws.id !== id);
+      const nextActiveId =
+        get().activeWorkspaceId === id ? remaining[0]?.id || null : get().activeWorkspaceId;
+
+      writeSavedWorkspaceId(nextActiveId);
+      set({
+        workspaces: remaining,
+        activeWorkspaceId: nextActiveId,
+        activeWorkspaceDetails:
+          get().activeWorkspaceDetails?.id === id ? null : get().activeWorkspaceDetails,
+        members: get().activeWorkspaceId === id ? [] : get().members,
+        users: get().activeWorkspaceId === id ? [] : get().users,
+      });
+
+      if (nextActiveId && nextActiveId !== id) {
+        await get().fetchWorkspaceContext(nextActiveId);
+      }
+
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.message || 'Failed to delete workspace',
+      };
+    }
+  },
+
+  regenerateInviteCode: async (id) => {
+    try {
+      const inviteCode = await workspaceService.generateInviteCode(id);
+      set((state) => ({
+        workspaces: state.workspaces.map((ws) =>
+          ws.id === id ? { ...ws, inviteCode } : ws
+        ),
+        activeWorkspaceDetails:
+          state.activeWorkspaceDetails?.id === id
+            ? { ...state.activeWorkspaceDetails, inviteCode }
+            : state.activeWorkspaceDetails,
+      }));
+      return { success: true, inviteCode };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.message || 'Failed to generate invite code',
+      };
+    }
+  },
+
+  joinByInviteCode: async (inviteCode) => {
+    try {
+      const workspace = await workspaceService.joinWorkspace(inviteCode);
+      if (!workspace) {
+        return { success: false, error: 'Failed to join workspace' };
+      }
+
+      writeSavedWorkspaceId(workspace.id);
+      set((state) => ({
+        workspaces: [workspace, ...state.workspaces.filter((w) => w.id !== workspace.id)],
+        activeWorkspaceId: workspace.id,
+        activeWorkspaceDetails: workspace,
+        hasLoadedWorkspaces: true,
+        workspaceError: null,
+      }));
+
+      await get().fetchWorkspaceContext(workspace.id);
+      return { success: true, workspace };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.message || 'Failed to join workspace',
+      };
+    }
+  },
+
+  removeMember: async (workspaceId, userId, currentUserId) => {
+    try {
+      await workspaceService.removeMember(workspaceId, userId);
+
+      const isSelfLeaving = currentUserId && userId === currentUserId;
+      if (isSelfLeaving) {
+        const remaining = get().workspaces.filter((ws) => ws.id !== workspaceId);
+        const nextActiveId =
+          get().activeWorkspaceId === workspaceId
+            ? remaining[0]?.id || null
+            : get().activeWorkspaceId;
+
+        writeSavedWorkspaceId(nextActiveId);
+        set({
+          workspaces: remaining,
+          activeWorkspaceId: nextActiveId,
+          activeWorkspaceDetails: null,
+          members: [],
+          users: [],
+        });
+
+        if (nextActiveId) {
+          await get().fetchWorkspaceContext(nextActiveId);
+        }
+        return { success: true, leftWorkspace: true };
+      }
+
+      set((state) => {
+        const updatedMembers = state.members.filter((m) => m.id !== userId);
+        return {
+          members: updatedMembers,
+          users: updatedMembers,
+        };
+      });
+      return { success: true, leftWorkspace: false };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.message || 'Failed to update workspace membership',
+      };
+    }
+  },
+
+  resetWorkspaceState: () => {
+    contextRequestCounter += 1;
+    writeSavedWorkspaceId(null);
     set({
-      activeWorkspaceId: id,
-      activeProjectId: firstProj ? firstProj.id : get().activeProjectId
+      workspaces: [],
+      activeWorkspaceId: null,
+      activeWorkspaceDetails: null,
+      members: [],
+      users: [],
+      isLoadingWorkspaces: false,
+      isLoadingMembers: false,
+      hasLoadedWorkspaces: false,
+      workspaceError: null,
+      ...initialTransitionalState,
     });
   },
 
-  setActiveProjectId: (id) => {
-    set({ activeProjectId: id });
-  },
-
-  setFilter: (key, value) => {
-    set(state => ({
-      filters: { ...state.filters, [key]: value }
-    }));
-  },
-
-  resetFilters: () => {
+  // Transitional helpers kept no-op/filter-only until Milestones 5-7 migrate consumers
+  setActiveProjectId: (id) => set({ activeProjectId: id }),
+  setFilter: (key, value) =>
+    set((state) => ({
+      filters: { ...state.filters, [key]: value },
+    })),
+  resetFilters: () =>
     set({
       filters: {
         search: '',
@@ -59,284 +363,10 @@ export const useWorkspaceStore = create((set, get) => ({
         assigneeId: 'all',
         tag: 'all',
         sortBy: 'default',
-      }
-    });
-  },
-
-  addTask: (newTaskData) => {
-    const { tasks, activeProjectId, projects, users } = get();
-    const project = projects.find(p => p.id === activeProjectId) || projects[0];
-    
-    // Auto-generate key like ENG-351
-    const prefix = project?.key || 'TASK';
-    const existingNums = tasks
-      .filter(t => t.key && t.key.startsWith(prefix))
-      .map(t => parseInt(t.key.replace(`${prefix}-`, '')) || 0);
-    const nextNum = (Math.max(340, ...existingNums) || 350) + 1;
-
-    const newTask = {
-      id: `task-${Date.now()}`,
-      key: `${prefix}-${nextNum}`,
-      projectId: activeProjectId,
-      title: newTaskData.title || 'Untitled Issue',
-      description: newTaskData.description || '',
-      status: newTaskData.status || 'todo',
-      priority: newTaskData.priority || 'medium',
-      assigneeId: newTaskData.assigneeId || users[0].id,
-      storyPoints: parseInt(newTaskData.storyPoints, 10) || 3,
-      tags: newTaskData.tags && newTaskData.tags.length > 0 ? newTaskData.tags : ['Feature'],
-      dueDate: newTaskData.dueDate || new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0],
-      createdAt: new Date().toISOString().split('T')[0],
-      subtasks: newTaskData.subtasks || [],
-      comments: []
-    };
-
-    const updatedTasks = [newTask, ...tasks];
-    storage.set(STORAGE_KEYS.TASKS, updatedTasks);
-
-    // Record activity
-    const newActivity = {
-      id: `act-${Date.now()}`,
-      userId: users[0].id,
-      type: 'task_created',
-      target: newTask.key,
-      details: `created issue "${newTask.title.substring(0, 45)}${newTask.title.length > 45 ? '...' : ''}"`,
-      time: 'Just now',
-      timestamp: new Date().toISOString()
-    };
-    const updatedActivities = [newActivity, ...get().activities];
-    storage.set(STORAGE_KEYS.ACTIVITIES, updatedActivities);
-
-    set({ tasks: updatedTasks, activities: updatedActivities });
-    return newTask;
-  },
-
-  updateTask: (taskId, updates) => {
-    const { tasks } = get();
-    const updatedTasks = tasks.map(t => {
-      if (t.id === taskId) {
-        return { ...t, ...updates };
-      }
-      return t;
-    });
-
-    storage.set(STORAGE_KEYS.TASKS, updatedTasks);
-    set({ tasks: updatedTasks });
-  },
-
-  deleteTask: (taskId) => {
-    const { tasks } = get();
-    const taskToDelete = tasks.find(t => t.id === taskId);
-    const updatedTasks = tasks.filter(t => t.id !== taskId);
-    storage.set(STORAGE_KEYS.TASKS, updatedTasks);
-
-    if (taskToDelete) {
-      const newActivity = {
-        id: `act-${Date.now()}`,
-        userId: get().users[0].id,
-        type: 'task_deleted',
-        target: taskToDelete.key,
-        details: `deleted task "${taskToDelete.title.substring(0, 40)}"`,
-        time: 'Just now',
-        timestamp: new Date().toISOString()
-      };
-      const updatedActivities = [newActivity, ...get().activities];
-      storage.set(STORAGE_KEYS.ACTIVITIES, updatedActivities);
-      set({ tasks: updatedTasks, activities: updatedActivities });
-    } else {
-      set({ tasks: updatedTasks });
-    }
-  },
-
-  moveTask: (taskId, newStatus, newIndex) => {
-    const { tasks, users } = get();
-    const targetTask = tasks.find(t => t.id === taskId);
-    if (!targetTask) return;
-
-    const oldStatus = targetTask.status;
-    const sameStatus = oldStatus === newStatus;
-
-    // Filter tasks by column
-    const otherTasks = tasks.filter(t => t.id !== taskId);
-    const targetColumnTasks = otherTasks.filter(t => t.status === newStatus);
-    const nonTargetColumnTasks = otherTasks.filter(t => t.status !== newStatus);
-
-    // Insert updated task at newIndex
-    const updatedTask = { ...targetTask, status: newStatus };
-    const validIndex = typeof newIndex === 'number' ? Math.min(newIndex, targetColumnTasks.length) : targetColumnTasks.length;
-    targetColumnTasks.splice(validIndex, 0, updatedTask);
-
-    const mergedTasks = [...targetColumnTasks, ...nonTargetColumnTasks];
-    storage.set(STORAGE_KEYS.TASKS, mergedTasks);
-
-    // If status actually changed, record activity
-    if (!sameStatus) {
-      const formatStatus = (s) => {
-        if (s === 'todo') return 'To Do';
-        if (s === 'in_progress') return 'In Progress';
-        if (s === 'in_review') return 'In Review';
-        if (s === 'completed') return 'Completed';
-        return s;
-      };
-
-      const newActivity = {
-        id: `act-${Date.now()}`,
-        userId: users[0].id,
-        type: 'task_moved',
-        target: targetTask.key,
-        details: `moved ${targetTask.key} from ${formatStatus(oldStatus)} to ${formatStatus(newStatus)}`,
-        time: 'Just now',
-        timestamp: new Date().toISOString()
-      };
-      const updatedActivities = [newActivity, ...get().activities];
-      storage.set(STORAGE_KEYS.ACTIVITIES, updatedActivities);
-      set({ tasks: mergedTasks, activities: updatedActivities });
-    } else {
-      set({ tasks: mergedTasks });
-    }
-  },
-
-  addComment: (taskId, content, user) => {
-    if (!content.trim()) return;
-    const { tasks } = get();
-    const newComment = {
-      id: `c-${Date.now()}`,
-      userId: user?.id || get().users[0].id,
-      content,
-      createdAt: new Date().toISOString()
-    };
-
-    const updatedTasks = tasks.map(t => {
-      if (t.id === taskId) {
-        return {
-          ...t,
-          comments: [...(t.comments || []), newComment]
-        };
-      }
-      return t;
-    });
-
-    storage.set(STORAGE_KEYS.TASKS, updatedTasks);
-
-    // Add activity
-    const targetTask = tasks.find(t => t.id === taskId);
-    if (targetTask) {
-      const newActivity = {
-        id: `act-${Date.now()}`,
-        userId: user?.id || get().users[0].id,
-        type: 'comment_added',
-        target: targetTask.key,
-        details: `commented on ${targetTask.key}`,
-        time: 'Just now',
-        timestamp: new Date().toISOString()
-      };
-      const updatedActivities = [newActivity, ...get().activities];
-      storage.set(STORAGE_KEYS.ACTIVITIES, updatedActivities);
-      set({ tasks: updatedTasks, activities: updatedActivities });
-    } else {
-      set({ tasks: updatedTasks });
-    }
-  },
-
-  toggleSubtask: (taskId, subtaskId) => {
-    const { tasks } = get();
-    const updatedTasks = tasks.map(t => {
-      if (t.id === taskId) {
-        const updatedSubs = (t.subtasks || []).map(st => 
-          st.id === subtaskId ? { ...st, done: !st.done } : st
-        );
-        return { ...t, subtasks: updatedSubs };
-      }
-      return t;
-    });
-
-    storage.set(STORAGE_KEYS.TASKS, updatedTasks);
-    set({ tasks: updatedTasks });
-  },
-
-  addSubtask: (taskId, title) => {
-    if (!title.trim()) return;
-    const { tasks } = get();
-    const newSubtask = {
-      id: `st-${Date.now()}`,
-      title,
-      done: false
-    };
-
-    const updatedTasks = tasks.map(t => {
-      if (t.id === taskId) {
-        return {
-          ...t,
-          subtasks: [...(t.subtasks || []), newSubtask]
-        };
-      }
-      return t;
-    });
-
-    storage.set(STORAGE_KEYS.TASKS, updatedTasks);
-    set({ tasks: updatedTasks });
-  },
-
-  deleteSubtask: (taskId, subtaskId) => {
-    const { tasks } = get();
-    const updatedTasks = tasks.map(t => {
-      if (t.id === taskId) {
-        return {
-          ...t,
-          subtasks: (t.subtasks || []).filter(st => st.id !== subtaskId)
-        };
-      }
-      return t;
-    });
-
-    storage.set(STORAGE_KEYS.TASKS, updatedTasks);
-    set({ tasks: updatedTasks });
-  },
-
-  addProject: (projectData) => {
-    const { projects, activeWorkspaceId, users } = get();
-    const newProj = {
-      id: `proj-${Date.now()}`,
-      workspaceId: activeWorkspaceId,
-      name: projectData.name || 'New Initiative',
-      key: (projectData.key || 'PRJ').toUpperCase(),
-      description: projectData.description || 'Sprint initiative in development.',
-      status: 'active',
-      category: projectData.category || 'Engineering',
-      color: projectData.color || '#6366f1',
-      progress: 0,
-      leadId: projectData.leadId || users[0].id,
-      teamIds: [users[0].id, users[1].id],
-      sprint: 'Sprint 1',
-      dueDate: projectData.dueDate || '2026-12-31',
-      starred: false,
-    };
-
-    const updatedProjects = [...projects, newProj];
-    storage.set(STORAGE_KEYS.PROJECTS, updatedProjects);
-    set({ projects: updatedProjects, activeProjectId: newProj.id });
-    return newProj;
-  },
-
-  toggleProjectStar: (projectId) => {
-    const { projects } = get();
-    const updated = projects.map(p => 
-      p.id === projectId ? { ...p, starred: !p.starred } : p
-    );
-    storage.set(STORAGE_KEYS.PROJECTS, updated);
-    set({ projects: updated });
-  },
-
-  resetAllData: () => {
-    storage.resetToDefault();
-    set({
-      workspaces: initialWorkspaces,
-      projects: initialProjects,
-      tasks: initialTasks,
-      activities: initialActivities,
-      activeWorkspaceId: 'ws-2',
-      activeProjectId: 'proj-1'
-    });
-  }
+      },
+    }),
 }));
 
+registerLogoutCleanup(() => {
+  useWorkspaceStore.getState().resetWorkspaceState();
+});

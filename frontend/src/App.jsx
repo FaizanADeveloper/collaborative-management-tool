@@ -6,6 +6,8 @@ import { CommandPalette } from './components/layout/CommandPalette';
 import { TaskCreateModal } from './components/tasks/TaskCreateModal';
 import { TaskDetailsDrawer } from './components/tasks/TaskDetailsDrawer';
 import { ProjectCreateModal } from './components/projects/ProjectCreateModal';
+import { WorkspaceCreateModal } from './components/workspaces/WorkspaceCreateModal';
+import { JoinWorkspaceModal } from './components/workspaces/JoinWorkspaceModal';
 import { ToastContainer } from './components/common/ToastContainer';
 
 import { DashboardPage } from './pages/DashboardPage';
@@ -20,6 +22,7 @@ import { SignupPage } from './pages/auth/SignupPage';
 
 import { useUIStore } from './store/useUIStore';
 import { useAuthStore } from './store/useAuthStore';
+import { useWorkspaceStore } from './store/useWorkspaceStore';
 
 const HydrationLoader = () => (
   <div className="min-h-screen bg-canvas text-ink flex items-center justify-center p-6">
@@ -63,6 +66,8 @@ const PublicOnlyRoute = ({ children }) => {
 
 const AppLayout = ({ children }) => {
   const { sidebarCollapsed, theme } = useUIStore();
+  const { isAuthenticated } = useAuthStore();
+  const { hasLoadedWorkspaces, isLoadingWorkspaces, fetchWorkspaces } = useWorkspaceStore();
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -71,6 +76,12 @@ const AppLayout = ({ children }) => {
       document.documentElement.classList.remove('dark');
     }
   }, [theme]);
+
+  useEffect(() => {
+    if (isAuthenticated && !hasLoadedWorkspaces && !isLoadingWorkspaces) {
+      fetchWorkspaces();
+    }
+  }, [isAuthenticated, hasLoadedWorkspaces, isLoadingWorkspaces, fetchWorkspaces]);
 
   return (
     <div className="min-h-screen bg-canvas text-ink flex flex-col">
@@ -89,6 +100,8 @@ const AppLayout = ({ children }) => {
       </div>
 
       <CommandPalette />
+      <WorkspaceCreateModal />
+      <JoinWorkspaceModal />
       <TaskCreateModal />
       <ProjectCreateModal />
       <TaskDetailsDrawer />
