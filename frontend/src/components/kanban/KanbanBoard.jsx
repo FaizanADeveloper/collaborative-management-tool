@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useState, useMemo } from 'react';
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskFilters } from './TaskFilters';
@@ -10,6 +10,7 @@ import { Button } from '../common/Button';
 import { EmptyState } from '../common/EmptyState';
 import { BoardSkeleton } from '../common/Skeleton';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { sortByPosition } from '../../utils/positioning';
 import {
   FolderKanban,
   Plus,
@@ -20,6 +21,90 @@ import {
   Columns3,
 } from 'lucide-react';
 
+const PRIORITY_WEIGHT = { urgent: 4, high: 3, medium: 2, low: 1 };
+
+const extractAssigneeIds = (card) =>
+  (card.assignees || [])
+    .map((a) => (typeof a === 'string' ? a : a?.id))
+    .filter(Boolean);
+
+const applyCardFiltersAndSort = (cards = [], filters) => {
+  let result = sortByPosition(cards);
+
+  if (filters.search?.trim()) {
+    const q = filters.search.trim().toLowerCase();
+    result = result.filter(
+      (c) =>
+        (c.title || '').toLowerCase().includes(q) ||
+        (c.description || '').toLowerCase().includes(q) ||
+        (Array.isArray(c.labels) && c.labels.some((l) => l.toLowerCase().includes(q)))
+    );
+  }
+
+  if (filters.priority !== 'all') {
+    result = result.filter((c) => c.priority === filters.priority);
+  }
+
+  if (filters.assigneeId !== 'all') {
+    result = result.filter((c) => extractAssigneeIds(c).includes(filters.assigneeId));
+  }
+
+  if (filters.label !== 'all') {
+    result = result.filter(
+      (c) => Array.isArray(c.labels) && c.labels.includes(filters.label)
+    );
+  }
+
+  if (filters.sortBy === 'priority') {
+    result = [...result].sort(
+      (a, b) => (PRIORITY_WEIGHT[b.priority] || 0) - (PRIORITY_WEIGHT[a.priority] || 0)
+    );
+  } else if (filters.sortBy === 'dueDate') {
+    result = [...result].sort((a, b) => {
+      const timeA = a.dueDate ? new Date(a.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+      const timeB = b.dueDate ? new Date(b.dueDate).getTime() : Number.MAX_SAFE_INTEGER;
+      return timeA - timeB;
+    });
+  } else if (filters.sortBy === 'newest') {
+    result = [...result].sort(
+      (a, b) => new Date(b.createdAt || 0).getTime() - new Date(a.createdAt || 0).getTime()
+    );
+  }
+
+  return result;
+};
+
+const mapVisibleIndexToFullIndex = (
+  fullDestCards = [],
+  visibleDestCards = [],
+  visibleDestIndex,
+  movingCardId
+) => {
+  const fullWithoutSelf = sortByPosition(fullDestCards).filter((c) => c.id !== movingCardId);
+  const visibleWithoutSelf = visibleDestCards.filter((c) => c.id !== movingCardId);
+
+  if (fullWithoutSelf.length === visibleWithoutSelf.length) {
+    return visibleDestIndex;
+  }
+  if (visibleDestIndex <= 0) {
+    if (visibleWithoutSelf.length === 0) return 0;
+    const firstVisibleIdx = fullWithoutSelf.findIndex(
+      (c) => c.id === visibleWithoutSelf[0].id
+    );
+    return firstVisibleIdx >= 0 ? firstVisibleIdx : 0;
+  }
+  if (visibleDestIndex >= visibleWithoutSelf.length) {
+    if (visibleWithoutSelf.length === 0) return fullWithoutSelf.length;
+    const prevVisible = visibleWithoutSelf[visibleWithoutSelf.length - 1];
+    const prevIdx = fullWithoutSelf.findIndex((c) => c.id === prevVisible.id);
+    return prevIdx >= 0 ? prevIdx + 1 : fullWithoutSelf.length;
+  }
+
+  const anchor = visibleWithoutSelf[visibleDestIndex];
+  const anchorIdx = fullWithoutSelf.findIndex((c) => c.id === anchor.id);
+  return anchorIdx >= 0 ? anchorIdx : visibleDestIndex;
+};
+
 export const KanbanBoard = () => {
   const { user } = useAuthStore();
   const { activeWorkspaceId, workspaces, activeWorkspaceDetails } = useWorkspaceStore();
@@ -29,6 +114,7 @@ export const KanbanBoard = () => {
     activeBoard,
     lists,
     cardsByList,
+    filters,
     isLoadingBoards,
     isLoadingBoardDetails,
     boardError,
@@ -38,12 +124,14 @@ export const KanbanBoard = () => {
     renameList,
     reorderList,
     deleteList,
+    moveCard,
   } = useBoardStore();
   const {
     openCreateBoard,
     openEditBoard,
     openCreateWorkspace,
     openJoinWorkspace,
+    openCreateCard,
     addToast,
   } = useUIStore();
 
@@ -70,6 +158,16 @@ export const KanbanBoard = () => {
     userRole === 'owner' ||
     userRole === 'admin' ||
     Boolean(user?.id && creatorId && creatorId === user.id);
+
+  const isCustomSortActive = filters.sortBy !== 'position';
+
+  const visibleCardsByList = useMemo(() => {
+    const map = {};
+    lists.forEach((list) => {
+      map[list.id] = applyCardFiltersAndSort(cardsByList[list.id] || [], filters);
+    });
+    return map;
+  }, [lists, cardsByList, filters]);
 
   const totalCards = lists.reduce(
     (sum, list) => sum + (cardsByList[list.id]?.length || 0),
@@ -172,7 +270,7 @@ export const KanbanBoard = () => {
     setConfirmDeleteBoardOpen(false);
   };
 
-  const handleDragEnd = (result) => {
+  const handleDragEnd = async (result) => {
     const { destination, source, draggableId, type } = result;
     if (!destination) return;
     if (
@@ -186,7 +284,34 @@ export const KanbanBoard = () => {
       const listId = draggableId.startsWith('list:')
         ? draggableId.slice(5)
         : draggableId;
-      handleReorderList(listId, destination.index);
+      await handleReorderList(listId, destination.index);
+      return;
+    }
+
+    if (isCustomSortActive) return;
+
+    const fullDestCards = cardsByList[destination.droppableId] || [];
+    const visibleDestCards = visibleCardsByList[destination.droppableId] || [];
+    const mappedIndex = mapVisibleIndexToFullIndex(
+      fullDestCards,
+      visibleDestCards,
+      destination.index,
+      draggableId
+    );
+
+    const moveResult = await moveCard(
+      draggableId,
+      source.droppableId,
+      destination.droppableId,
+      mappedIndex
+    );
+
+    if (!moveResult.success) {
+      addToast({
+        type: 'error',
+        title: 'Unable to move card',
+        message: moveResult.error || 'Restored card to its previous position.',
+      });
     }
   };
 
@@ -270,6 +395,16 @@ export const KanbanBoard = () => {
               </select>
             )}
 
+            <Button
+              variant="primary"
+              size="sm"
+              icon={Plus}
+              disabled={lists.length === 0}
+              onClick={() => openCreateCard(lists[0]?.id || null)}
+            >
+              Add Card
+            </Button>
+
             {canManageBoard && (
               <>
                 <Button
@@ -307,6 +442,12 @@ export const KanbanBoard = () => {
       {/* Filter Toolbar */}
       <TaskFilters />
 
+      {isCustomSortActive && (
+        <p className="text-xs text-ink-muted">
+          Showing custom sort order. Switch sort back to <strong>Manual Order</strong> to drag and reorder cards.
+        </p>
+      )}
+
       {/* Dynamic Lists Canvas */}
       <DragDropContext onDragEnd={handleDragEnd}>
         <Droppable droppableId="board-lists" direction="horizontal" type="LIST">
@@ -322,7 +463,8 @@ export const KanbanBoard = () => {
                   list={list}
                   index={idx}
                   totalLists={lists.length}
-                  cards={cardsByList[list.id] || []}
+                  cards={visibleCardsByList[list.id] || []}
+                  isCardDragDisabled={isCustomSortActive}
                   onRenameList={handleRenameList}
                   onMoveListLeft={() => handleReorderList(list.id, idx - 1)}
                   onMoveListRight={() => handleReorderList(list.id, idx + 1)}

@@ -1,384 +1,487 @@
 import React, { useState, useEffect } from 'react';
 import { useUIStore } from '../../store/useUIStore';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
-import { useAuthStore } from '../../store/useAuthStore';
+import { useBoardStore } from '../../store/useBoardStore';
 import { Avatar } from '../common/Avatar';
 import { Button } from '../common/Button';
-import { PriorityBadge, StatusBadge } from '../common/Badge';
+import { PriorityBadge } from '../common/Badge';
+import { ConfirmDialog } from '../common/ConfirmDialog';
 import {
   X,
   Calendar,
-  Clock,
-  CheckSquare,
   Plus,
   Trash2,
-  Send,
-  MessageSquare,
-  User,
-  Tag,
+  Paperclip,
+  ExternalLink,
   AlertCircle,
-  FolderKanban,
-  CheckCircle2
+  Columns3,
 } from 'lucide-react';
 
+const getCardLocation = (cardsByList, cardId) => {
+  for (const [listId, listCards] of Object.entries(cardsByList)) {
+    const found = (listCards || []).find((c) => c.id === cardId);
+    if (found) return { card: found, listId };
+  }
+  return { card: null, listId: null };
+};
+
+const getAssigneeIds = (assignees = []) =>
+  assignees.map((a) => (typeof a === 'string' ? a : a?.id)).filter(Boolean);
+
+const isSafeHttpUrl = (url) => typeof url === 'string' && /^https?:\/\//i.test(url);
+
 export const TaskDetailsDrawer = () => {
-  const { selectedTaskId, closeTaskDetails } = useUIStore();
+  const { selectedCardId, closeCardDetails, addToast } = useUIStore();
+  const { members } = useWorkspaceStore();
   const {
-    tasks,
-    users,
-    projects,
-    updateTask,
-    deleteTask,
-    addComment,
-    toggleSubtask,
-    addSubtask,
-    deleteSubtask,
-  } = useWorkspaceStore();
+    lists,
+    cardsByList,
+    activeBoard,
+    updateCard,
+    moveCard,
+    deleteCard,
+  } = useBoardStore();
 
-  const { user: currentUser } = useAuthStore();
+  const { card, listId } = selectedCardId
+    ? getCardLocation(cardsByList, selectedCardId)
+    : { card: null, listId: null };
 
-  const [commentText, setCommentText] = useState('');
-  const [newSubtaskTitle, setNewSubtaskTitle] = useState('');
-  const [isEditingTitle, setIsEditingTitle] = useState(false);
-  const [editedTitle, setEditedTitle] = useState('');
+  const [title, setTitle] = useState('');
+  const [description, setDescription] = useState('');
+  const [priority, setPriority] = useState('medium');
+  const [dueDate, setDueDate] = useState('');
+  const [labels, setLabels] = useState([]);
+  const [labelInput, setLabelInput] = useState('');
+  const [assignees, setAssignees] = useState([]);
+  const [isSaving, setIsSaving] = useState(false);
+  const [saveError, setSaveError] = useState('');
 
-  const task = tasks.find(t => t.id === selectedTaskId);
-  const project = projects.find(p => p.id === task?.projectId);
-  const assignee = users.find(u => u.id === task?.assigneeId);
+  const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
 
   useEffect(() => {
-    if (task) {
-      setEditedTitle(task.title);
+    if (card) {
+      setTitle(card.title || '');
+      setDescription(card.description || '');
+      setPriority(card.priority || 'medium');
+      setDueDate(card.dueDate ? String(card.dueDate).slice(0, 10) : '');
+      setLabels(Array.isArray(card.labels) ? card.labels : []);
+      setAssignees(getAssigneeIds(card.assignees || []));
+      setLabelInput('');
+      setSaveError('');
     }
-  }, [task]);
+  }, [card]);
 
-  if (!selectedTaskId || !task) return null;
+  if (!selectedCardId || !card) return null;
 
-  const handleTitleBlur = () => {
-    setIsEditingTitle(false);
-    if (editedTitle.trim() && editedTitle !== task.title) {
-      updateTask(task.id, { title: editedTitle.trim() });
+  const currentList = lists.find((l) => l.id === listId);
+  const attachments = Array.isArray(card.attachments) ? card.attachments : [];
+
+  const persistUpdate = async (patch, successMessage) => {
+    setSaveError('');
+    setIsSaving(true);
+    const result = await updateCard(card.id, patch);
+    setIsSaving(false);
+
+    if (!result.success) {
+      setSaveError(result.error || 'Failed to update card');
+      return false;
     }
+
+    if (successMessage) {
+      addToast({
+        type: 'success',
+        title: 'Card updated',
+        message: successMessage,
+      });
+    }
+    return true;
   };
 
-  const handleCommentSubmit = (e) => {
+  const handleSaveDetails = async (e) => {
     e.preventDefault();
-    if (commentText.trim()) {
-      addComment(task.id, commentText.trim(), currentUser);
-      setCommentText('');
+    const trimmedTitle = title.trim();
+    if (!trimmedTitle) {
+      setSaveError('Card title is required');
+      return;
     }
+    if (trimmedTitle.length > 200) {
+      setSaveError('Card title cannot exceed 200 characters');
+      return;
+    }
+    if (description.trim().length > 5000) {
+      setSaveError('Card description cannot exceed 5000 characters');
+      return;
+    }
+
+    await persistUpdate(
+      {
+        title: trimmedTitle,
+        description: description.trim(),
+        priority,
+        dueDate: dueDate ? dueDate : null,
+        assignees,
+        labels,
+      },
+      `Saved changes to "${trimmedTitle}".`
+    );
   };
 
-  const handleAddSubtaskSubmit = (e) => {
-    e.preventDefault();
-    if (newSubtaskTitle.trim()) {
-      addSubtask(task.id, newSubtaskTitle.trim());
-      setNewSubtaskTitle('');
+  const handleMoveList = async (destinationListId) => {
+    if (!destinationListId || destinationListId === listId) return;
+    const destCards = cardsByList[destinationListId] || [];
+    const result = await moveCard(card.id, listId, destinationListId, destCards.length);
+    if (!result.success) {
+      addToast({
+        type: 'error',
+        title: 'Unable to move card',
+        message: result.error,
+      });
+      return;
     }
+    const targetList = lists.find((l) => l.id === destinationListId);
+    addToast({
+      type: 'success',
+      title: 'Card moved',
+      message: `Moved to ${targetList?.name || 'selected list'}.`,
+    });
   };
 
-  const handleDelete = () => {
-    if (window.confirm(`Are you sure you want to delete ${task.key}?`)) {
-      deleteTask(task.id);
-      closeTaskDetails();
-    }
+  const handleToggleAssignee = (memberId) => {
+    setAssignees((prev) =>
+      prev.includes(memberId)
+        ? prev.filter((id) => id !== memberId)
+        : [...prev, memberId]
+    );
   };
 
-  const completedCount = (task.subtasks || []).filter(st => st.done).length;
-  const totalCount = (task.subtasks || []).length;
+  const handleAddLabel = () => {
+    const trimmed = labelInput.trim();
+    if (!trimmed) return;
+    if (trimmed.length > 50) {
+      setSaveError('Labels cannot exceed 50 characters');
+      return;
+    }
+    if (!labels.includes(trimmed)) {
+      setLabels([...labels, trimmed]);
+    }
+    setLabelInput('');
+  };
+
+  const handleConfirmDelete = async () => {
+    setIsDeleting(true);
+    const result = await deleteCard(card.id);
+    setIsDeleting(false);
+
+    if (!result.success) {
+      addToast({
+        type: 'error',
+        title: 'Unable to delete card',
+        message: result.error,
+      });
+      return;
+    }
+
+    addToast({
+      type: 'success',
+      title: 'Card deleted',
+      message: `"${card.title}" was deleted.`,
+    });
+    setConfirmDeleteOpen(false);
+    closeCardDetails();
+  };
 
   return (
-    <div className="fixed inset-0 z-50 overflow-hidden">
-      {/* Backdrop */}
+    <div className="fixed inset-0 z-50 overflow-hidden" role="dialog" aria-modal="true" aria-label="Card details">
       <div
-        className="fixed inset-0 bg-black/70 backdrop-blur-sm transition-opacity"
-        onClick={closeTaskDetails}
+        className="fixed inset-0 bg-slate-950/60 backdrop-blur-sm transition-opacity"
+        onClick={closeCardDetails}
       />
 
-      {/* Slide-out Drawer Container */}
       <div className="fixed inset-y-0 right-0 max-w-full flex pl-10">
-        <div className="w-screen max-w-2xl bg-[#0d1321] border-l border-slate-800 shadow-2xl flex flex-col justify-between overflow-hidden animate-in slide-in-from-right duration-200">
-          
+        <div className="w-screen max-w-2xl bg-surface border-l border-line shadow-2xl flex flex-col justify-between overflow-hidden">
           {/* Header */}
-          <div className="px-6 py-4 border-b border-slate-800 bg-slate-900/80 flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <span className="font-mono text-sm font-bold text-indigo-400 bg-indigo-950/60 px-2 py-0.5 rounded border border-indigo-800/40">
-                {task.key}
-              </span>
-              <span className="text-xs text-slate-400">
-                in <strong className="text-slate-200">{project?.name || 'Project'}</strong>
-              </span>
+          <div className="px-6 py-4 border-b border-line flex items-center justify-between gap-3 bg-subtle/40">
+            <div className="flex items-center gap-2.5 min-w-0">
+              {activeBoard && (
+                <span className="text-xs font-medium text-ink-muted truncate max-w-[160px]">
+                  {activeBoard.name}
+                </span>
+              )}
+              {currentList && (
+                <>
+                  <span className="text-line-strong">/</span>
+                  <span className="text-xs font-medium text-brand truncate">
+                    {currentList.name}
+                  </span>
+                </>
+              )}
+              <PriorityBadge priority={priority} />
             </div>
 
-            <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
               <button
-                onClick={handleDelete}
-                className="p-1.5 rounded-lg text-slate-500 hover:text-rose-400 hover:bg-slate-800 transition-colors"
-                title="Delete Issue"
+                type="button"
+                onClick={() => setConfirmDeleteOpen(true)}
+                aria-label="Delete card"
+                title="Delete card"
+                className="p-1.5 rounded-lg text-ink-muted hover:text-rose-500 hover:bg-rose-500/10 transition-colors"
               >
                 <Trash2 className="w-4 h-4" />
               </button>
               <button
-                onClick={closeTaskDetails}
-                className="p-1.5 rounded-lg text-slate-400 hover:text-slate-100 hover:bg-slate-800 transition-colors"
+                type="button"
+                onClick={closeCardDetails}
+                aria-label="Close card details"
+                className="p-1.5 rounded-lg text-ink-muted hover:text-ink hover:bg-subtle transition-colors"
               >
                 <X className="w-5 h-5" />
               </button>
             </div>
           </div>
 
-          {/* Drawer Body */}
-          <div className="flex-1 overflow-y-auto p-6 space-y-6">
-            
-            {/* Title */}
+          {/* Scrollable Form Body */}
+          <form onSubmit={handleSaveDetails} className="flex-1 overflow-y-auto p-6 space-y-5">
+            {saveError && (
+              <div
+                role="alert"
+                className="flex items-start gap-2 rounded-lg bg-rose-500/10 border border-rose-500/30 p-3 text-xs text-rose-500"
+              >
+                <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+                <span>{saveError}</span>
+              </div>
+            )}
+
             <div>
-              {isEditingTitle ? (
-                <input
-                  type="text"
-                  value={editedTitle}
-                  onChange={(e) => setEditedTitle(e.target.value)}
-                  onBlur={handleTitleBlur}
-                  onKeyDown={(e) => e.key === 'Enter' && handleTitleBlur()}
-                  autoFocus
-                  className="w-full text-lg font-bold text-white bg-slate-800/90 border border-indigo-500 rounded-lg p-2 focus:outline-none"
-                />
-              ) : (
-                <h2
-                  onClick={() => setIsEditingTitle(true)}
-                  className="text-lg font-bold text-slate-100 hover:text-indigo-300 transition-colors cursor-pointer rounded px-1 -mx-1 hover:bg-slate-800/40"
-                  title="Click to edit title"
-                >
-                  {task.title}
-                </h2>
-              )}
+              <label htmlFor="drawer-card-title" className="block text-xs font-medium text-ink-muted mb-1">
+                Card Title
+              </label>
+              <input
+                id="drawer-card-title"
+                type="text"
+                value={title}
+                onChange={(e) => setTitle(e.target.value)}
+                className="w-full rounded-lg bg-subtle border border-line-strong px-3 py-2 text-base font-semibold text-ink focus:outline-none focus:border-brand"
+              />
             </div>
 
-            {/* Quick Properties Grid */}
-            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3 p-3.5 rounded-xl bg-slate-900/60 border border-slate-800 text-xs">
-              {/* Status */}
+            <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 p-4 rounded-xl bg-subtle/40 border border-line">
               <div>
-                <span className="text-slate-500 block mb-1">Status</span>
-                <select
-                  value={task.status}
-                  onChange={(e) => updateTask(task.id, { status: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-200 font-medium focus:outline-none focus:border-indigo-500"
+                <label
+                  htmlFor="drawer-card-list"
+                  className="flex items-center gap-1 text-xs font-medium text-ink-muted mb-1"
                 >
-                  <option value="todo">To Do</option>
-                  <option value="in_progress">In Progress</option>
-                  <option value="in_review">In Review</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-
-              {/* Priority */}
-              <div>
-                <span className="text-slate-500 block mb-1">Priority</span>
+                  <Columns3 className="w-3.5 h-3.5" />
+                  <span>List</span>
+                </label>
                 <select
-                  value={task.priority}
-                  onChange={(e) => updateTask(task.id, { priority: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-200 font-medium focus:outline-none focus:border-indigo-500"
+                  id="drawer-card-list"
+                  value={listId || ''}
+                  onChange={(e) => handleMoveList(e.target.value)}
+                  className="w-full rounded-lg bg-surface border border-line-strong px-2.5 py-1.5 text-xs text-ink focus:outline-none focus:border-brand cursor-pointer"
                 >
-                  <option value="urgent">🔴 Urgent</option>
-                  <option value="high">🟠 High</option>
-                  <option value="medium">🔵 Medium</option>
-                  <option value="low">⚪ Low</option>
-                </select>
-              </div>
-
-              {/* Assignee */}
-              <div>
-                <span className="text-slate-500 block mb-1">Assignee</span>
-                <select
-                  value={task.assigneeId}
-                  onChange={(e) => updateTask(task.id, { assigneeId: e.target.value })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-200 font-medium focus:outline-none focus:border-indigo-500"
-                >
-                  {users.map(u => (
-                    <option key={u.id} value={u.id}>
-                      {u.name}
+                  {lists.map((l) => (
+                    <option key={l.id} value={l.id}>
+                      {l.name}
                     </option>
                   ))}
                 </select>
               </div>
 
-              {/* Points */}
               <div>
-                <span className="text-slate-500 block mb-1">Story Points</span>
-                <select
-                  value={task.storyPoints || 3}
-                  onChange={(e) => updateTask(task.id, { storyPoints: Number(e.target.value) })}
-                  className="w-full bg-slate-800 border border-slate-700 rounded px-2 py-1 text-slate-200 font-medium focus:outline-none focus:border-indigo-500 font-mono"
+                <label
+                  htmlFor="drawer-card-priority"
+                  className="block text-xs font-medium text-ink-muted mb-1"
                 >
-                  {[1, 2, 3, 5, 8, 13, 21].map(pts => (
-                    <option key={pts} value={pts}>{pts} pts</option>
-                  ))}
+                  Priority
+                </label>
+                <select
+                  id="drawer-card-priority"
+                  value={priority}
+                  onChange={(e) => setPriority(e.target.value)}
+                  className="w-full rounded-lg bg-surface border border-line-strong px-2.5 py-1.5 text-xs text-ink focus:outline-none focus:border-brand cursor-pointer"
+                >
+                  <option value="low">Low</option>
+                  <option value="medium">Medium</option>
+                  <option value="high">High</option>
+                  <option value="urgent">Urgent</option>
                 </select>
+              </div>
+
+              <div>
+                <label
+                  htmlFor="drawer-card-due"
+                  className="flex items-center gap-1 text-xs font-medium text-ink-muted mb-1"
+                >
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>Due Date</span>
+                </label>
+                <input
+                  id="drawer-card-due"
+                  type="date"
+                  value={dueDate}
+                  onChange={(e) => setDueDate(e.target.value)}
+                  className="w-full rounded-lg bg-surface border border-line-strong px-2.5 py-1.5 text-xs text-ink focus:outline-none focus:border-brand"
+                />
               </div>
             </div>
 
-            {/* Description */}
             <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
+              <label htmlFor="drawer-card-description" className="block text-xs font-medium text-ink-muted mb-1">
                 Description
               </label>
               <textarea
+                id="drawer-card-description"
                 rows={4}
-                value={task.description}
-                onChange={(e) => updateTask(task.id, { description: e.target.value })}
-                placeholder="Add a detailed description for this issue..."
-                className="w-full rounded-xl bg-slate-900/60 border border-slate-800 p-3.5 text-sm text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors leading-relaxed"
+                value={description}
+                onChange={(e) => setDescription(e.target.value)}
+                placeholder="Write a clear description for this card..."
+                className="w-full rounded-lg bg-subtle border border-line-strong px-3 py-2 text-sm text-ink placeholder-ink-muted focus:outline-none focus:border-brand"
               />
             </div>
 
-            {/* Tags */}
-            <div>
-              <label className="block text-xs font-semibold text-slate-400 uppercase tracking-wider mb-2">
-                Tags & Categorization
-              </label>
-              <div className="flex flex-wrap items-center gap-1.5">
-                {(task.tags || []).map((tag, idx) => (
-                  <span
-                    key={idx}
-                    className="px-2 py-1 rounded-md text-xs font-mono bg-slate-800 text-slate-300 border border-slate-700/60"
-                  >
-                    #{tag}
-                  </span>
-                ))}
-              </div>
-            </div>
-
-            {/* Subtasks Checklist */}
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                  <CheckSquare className="w-3.5 h-3.5 text-indigo-400" />
-                  <span>Checklist ({completedCount}/{totalCount})</span>
-                </label>
-                {totalCount > 0 && (
-                  <span className="text-xs font-mono text-indigo-400">
-                    {Math.round((completedCount / totalCount) * 100)}%
-                  </span>
-                )}
-              </div>
-
-              {totalCount > 0 && (
-                <div className="w-full h-1.5 bg-slate-800 rounded-full overflow-hidden">
-                  <div
-                    className="h-full bg-indigo-500 rounded-full transition-all duration-300"
-                    style={{ width: `${(completedCount / totalCount) * 100}%` }}
-                  />
+            {/* Assignees */}
+            <div className="space-y-2">
+              <span className="block text-xs font-medium text-ink-muted">Assignees</span>
+              {members.length === 0 ? (
+                <p className="text-xs text-ink-muted">No workspace members loaded.</p>
+              ) : (
+                <div className="flex flex-wrap gap-2">
+                  {members.map((member) => {
+                    const selected = assignees.includes(member.id);
+                    return (
+                      <button
+                        key={member.id}
+                        type="button"
+                        onClick={() => handleToggleAssignee(member.id)}
+                        aria-pressed={selected}
+                        className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                          selected
+                            ? 'bg-brand-subtle text-brand border-brand font-medium'
+                            : 'bg-subtle text-ink-secondary border-line hover:border-line-strong'
+                        }`}
+                      >
+                        <Avatar user={member} size="xs" />
+                        <span>{member.name}</span>
+                      </button>
+                    );
+                  })}
                 </div>
               )}
+            </div>
 
-              <div className="space-y-1.5">
-                {(task.subtasks || []).map((st) => (
-                  <div
-                    key={st.id}
-                    className="flex items-center justify-between p-2 rounded-lg bg-slate-900/50 hover:bg-slate-900 border border-slate-800/80 transition-colors group"
-                  >
-                    <label className="flex items-center gap-2.5 text-xs text-slate-300 cursor-pointer flex-1">
-                      <input
-                        type="checkbox"
-                        checked={st.done}
-                        onChange={() => toggleSubtask(task.id, st.id)}
-                        className="rounded border-slate-700 bg-slate-800 text-indigo-600 focus:ring-0 focus:ring-offset-0 cursor-pointer"
-                      />
-                      <span className={st.done ? 'line-through text-slate-500' : ''}>
-                        {st.title}
-                      </span>
-                    </label>
-                    <button
-                      onClick={() => deleteSubtask(task.id, st.id)}
-                      className="opacity-0 group-hover:opacity-100 p-1 text-slate-500 hover:text-rose-400 rounded transition-opacity"
-                    >
-                      <X className="w-3.5 h-3.5" />
-                    </button>
-                  </div>
-                ))}
-              </div>
-
-              {/* Add subtask input */}
-              <form onSubmit={handleAddSubtaskSubmit} className="flex items-center gap-2 pt-1">
+            {/* Labels */}
+            <div className="space-y-2">
+              <span className="block text-xs font-medium text-ink-muted">Labels</span>
+              <div className="flex gap-2">
                 <input
                   type="text"
-                  value={newSubtaskTitle}
-                  onChange={(e) => setNewSubtaskTitle(e.target.value)}
-                  placeholder="Add a checklist item..."
-                  className="flex-1 rounded-lg bg-slate-900/80 border border-slate-800 px-3 py-1.5 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+                  value={labelInput}
+                  onChange={(e) => setLabelInput(e.target.value)}
+                  onKeyDown={(e) => {
+                    if (e.key === 'Enter') {
+                      e.preventDefault();
+                      handleAddLabel();
+                    }
+                  }}
+                  placeholder="Add label..."
+                  aria-label="New card label"
+                  className="flex-1 rounded-lg bg-subtle border border-line-strong px-3 py-1.5 text-xs text-ink placeholder-ink-muted focus:outline-none focus:border-brand"
                 />
-                <Button type="submit" size="xs" variant="secondary">
-                  Add Item
+                <Button type="button" variant="secondary" size="sm" icon={Plus} onClick={handleAddLabel}>
+                  Add
                 </Button>
-              </form>
-            </div>
-
-            {/* Comments Thread */}
-            <div className="space-y-4 pt-4 border-t border-slate-800">
-              <label className="text-xs font-semibold text-slate-400 uppercase tracking-wider flex items-center gap-2">
-                <MessageSquare className="w-3.5 h-3.5 text-indigo-400" />
-                <span>Discussion Thread ({(task.comments || []).length})</span>
-              </label>
-
-              {/* Existing comments */}
-              <div className="space-y-3">
-                {(task.comments || []).length === 0 ? (
-                  <p className="text-xs text-slate-500 italic">No comments yet. Start the conversation below.</p>
-                ) : (
-                  (task.comments || []).map((comment) => {
-                    const author = users.find(u => u.id === comment.userId) || currentUser;
-                    const dateFormatted = new Date(comment.createdAt).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-                    return (
-                      <div
-                        key={comment.id}
-                        className="p-3.5 rounded-xl bg-slate-900/50 border border-slate-800/80 space-y-1.5"
-                      >
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-2">
-                            <Avatar user={author} size="xs" />
-                            <span className="text-xs font-semibold text-slate-200">
-                              {author?.name}
-                            </span>
-                            <span className="text-[10px] text-slate-500">
-                              {dateFormatted}
-                            </span>
-                          </div>
-                        </div>
-                        <p className="text-xs text-slate-300 leading-relaxed pl-6">
-                          {comment.content}
-                        </p>
-                      </div>
-                    );
-                  })
-                )}
               </div>
-
-              {/* Post comment input */}
-              <form onSubmit={handleCommentSubmit} className="space-y-2">
-                <textarea
-                  rows={2}
-                  value={commentText}
-                  onChange={(e) => setCommentText(e.target.value)}
-                  placeholder="Leave a comment or mention @teammate..."
-                  className="w-full rounded-xl bg-slate-900/80 border border-slate-800 p-3 text-xs text-slate-200 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
-                />
-                <div className="flex justify-end">
-                  <Button
-                    type="submit"
-                    variant="primary"
-                    size="sm"
-                    icon={Send}
-                    disabled={!commentText.trim()}
-                  >
-                    Post Comment
-                  </Button>
+              {labels.length > 0 && (
+                <div className="flex flex-wrap gap-1.5">
+                  {labels.map((label) => (
+                    <span
+                      key={label}
+                      className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-brand-subtle text-brand border border-brand/30"
+                    >
+                      <span>{label}</span>
+                      <button
+                        type="button"
+                        aria-label={`Remove label ${label}`}
+                        onClick={() => setLabels(labels.filter((l) => l !== label))}
+                      >
+                        <X className="w-3 h-3" />
+                      </button>
+                    </span>
+                  ))}
                 </div>
-              </form>
+              )}
             </div>
 
-          </div>
+            {/* Read-only Attachments Metadata (if stored on card) */}
+            {attachments.length > 0 && (
+              <div className="space-y-2 pt-2 border-t border-line">
+                <span className="flex items-center gap-1.5 text-xs font-medium text-ink-muted">
+                  <Paperclip className="w-3.5 h-3.5" />
+                  <span>Attachments ({attachments.length})</span>
+                </span>
+                <div className="space-y-1.5">
+                  {attachments.map((att, idx) => (
+                    <div
+                      key={`${att.name}-${idx}`}
+                      className="flex items-center justify-between px-3 py-2 rounded-lg bg-subtle border border-line text-xs"
+                    >
+                      <span className="text-ink font-medium truncate">{att.name}</span>
+                      <div className="flex items-center gap-3 text-ink-muted flex-shrink-0">
+                        {typeof att.size === 'number' && (
+                          <span>{Math.max(1, Math.round(att.size / 1024))} KB</span>
+                        )}
+                        {isSafeHttpUrl(att.url) && (
+                          <a
+                            href={att.url}
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="inline-flex items-center gap-1 text-brand hover:underline"
+                          >
+                            <span>Open</span>
+                            <ExternalLink className="w-3 h-3" />
+                          </a>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              </div>
+            )}
+
+            <div className="pt-4 border-t border-line flex items-center justify-between gap-2">
+              <Button
+                type="button"
+                variant="danger"
+                size="sm"
+                icon={Trash2}
+                onClick={() => setConfirmDeleteOpen(true)}
+              >
+                Delete Card
+              </Button>
+              <div className="flex items-center gap-2">
+                <Button type="button" variant="ghost" size="sm" onClick={closeCardDetails}>
+                  Close
+                </Button>
+                <Button type="submit" variant="primary" size="sm" loading={isSaving}>
+                  Save Changes
+                </Button>
+              </div>
+            </div>
+          </form>
         </div>
       </div>
+
+      <ConfirmDialog
+        isOpen={confirmDeleteOpen}
+        onClose={() => setConfirmDeleteOpen(false)}
+        onConfirm={handleConfirmDelete}
+        loading={isDeleting}
+        variant="danger"
+        title={`Delete "${card.title}"?`}
+        description="This card will be permanently removed from the board."
+        confirmLabel="Delete Card"
+      />
     </div>
   );
 };
-

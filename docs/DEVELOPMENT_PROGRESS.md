@@ -72,11 +72,21 @@ Tracks verified implementation milestones, testing, builds, and commit history f
 - **Testing & Build:**
   - Frontend tests (`npm.cmd --prefix frontend test`): 6 test files, 26/26 tests passed (`positioning.test.js` and `BoardAndList.test.jsx` added).
   - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 1.24s).
+- **Commit:**
+  - `389128b` — `feat(frontend): implement dynamic board and list management`
+
+**Milestone 6 (Card Management & Persistent Drag-and-Drop):**
+- **Completed:**
+  - Expanded `frontend/src/store/useBoardStore.js` with `createCard`, `updateCard`, `deleteCard`, `moveCard`, string/object assignee normalization against workspace members, and exact snapshot rollback on move failures.
+  - Refactored `TaskCreateModal.jsx` (syncing `defaultListId` cleanly on open with priority, multi-assignee, dueDate, labels, and Zod-aligned validation) and `TaskDetailsDrawer.jsx` (live field editing, cross-list move, safe read-only attachment metadata display, and `ConfirmDialog` deletion replacing `window.confirm`).
+  - Refactored `TaskCard.jsx` and `TaskFilters.jsx` with dual-theme styling and real card search, priority, assignee, label, and sort controls, mapping filtered visual drop indices onto true board list positions in `KanbanBoard.jsx`.
+- **Testing & Build:**
+  - Frontend tests (`npm.cmd --prefix frontend test`): 7 test files, 29/29 tests passed (`CardAndDnd.test.jsx` added covering card creation, editing, filtering, deletion, midpoint move, and failure rollback).
+  - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 2.15s).
 
 **Remaining work:**
-- Wire full Card CRUD (`TaskCard`, `TaskCreateModal`, `TaskDetailsDrawer`, `TaskFilters`) and persistent card drag-and-drop (`PATCH /api/cards/:id/move`) with optimistic rollback.
-- Refactor Dashboard analytics, Command Palette, and responsive states around real MongoDB Atlas data.
+- Refactor Dashboard analytics, Command Palette, and responsive states around real MongoDB Atlas data and retire remaining legacy mock references.
 - Add comprehensive frontend component/integration coverage, run end-to-end live verification, and evaluate scoped Week 3 real-time sync.
 
 **Next session:**
-- Implement Milestone 6 (Card management, field editing, filtering, and persistent `@hello-pangea/dnd` card drag-and-drop).
+- Implement Milestone 7 (Real-data Dashboard analytics, updated Command Palette, mock-store cleanup, and responsive dual-theme UX verification).

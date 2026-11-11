@@ -3,6 +3,7 @@ import { boardService } from '../services/boardService';
 import { listService } from '../services/listService';
 import { cardService } from '../services/cardService';
 import { registerLogoutCleanup } from './useAuthStore';
+import { useWorkspaceStore } from './useWorkspaceStore';
 import {
   sortByPosition,
   calculateInsertPosition,
@@ -40,6 +41,30 @@ const defaultFilters = {
   assigneeId: 'all',
   label: 'all',
   sortBy: 'position',
+};
+
+const normalizeCardAssignees = (card) => {
+  if (!card || !Array.isArray(card.assignees)) return card;
+  const members = useWorkspaceStore.getState().members || [];
+  const memberById = new Map(members.map((m) => [m.id, m]));
+  const normalized = card.assignees.map((assignee) => {
+    if (assignee && typeof assignee === 'object' && assignee.id) {
+      return assignee;
+    }
+    const id = typeof assignee === 'string' ? assignee : assignee?.id;
+    return memberById.get(id) || (id ? { id, name: 'Member', email: '' } : null);
+  }).filter(Boolean);
+
+  return { ...card, assignees: normalized };
+};
+
+const locateCardListId = (cardsByList, cardId) => {
+  for (const [listId, cards] of Object.entries(cardsByList)) {
+    if (Array.isArray(cards) && cards.some((c) => c.id === cardId)) {
+      return listId;
+    }
+  }
+  return null;
 };
 
 export const useBoardStore = create((set, get) => ({
@@ -406,6 +431,180 @@ export const useBoardStore = create((set, get) => ({
       return {
         success: false,
         error: err.message || 'Failed to delete list',
+      };
+    }
+  },
+
+  createCard: async (listId, payload) => {
+    try {
+      const created = await cardService.createCard(listId, payload);
+      if (!created) {
+        return { success: false, error: 'Failed to create card', fieldErrors: {} };
+      }
+
+      const card = normalizeCardAssignees(created);
+      set((state) => {
+        const existing = state.cardsByList[listId] || [];
+        return {
+          cardsByList: {
+            ...state.cardsByList,
+            [listId]: sortByPosition([...existing, card]),
+          },
+        };
+      });
+
+      return { success: true, card };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.message || 'Failed to create card',
+        fieldErrors: err.fieldErrors || {},
+      };
+    }
+  },
+
+  updateCard: async (cardId, payload) => {
+    try {
+      const updatedRaw = await cardService.updateCard(cardId, payload);
+      if (!updatedRaw) {
+        return { success: false, error: 'Failed to update card', fieldErrors: {} };
+      }
+
+      const updated = normalizeCardAssignees(updatedRaw);
+      set((state) => {
+        const currentListId =
+          locateCardListId(state.cardsByList, cardId) || updated.list;
+        if (!currentListId) return {};
+        const currentListCards = state.cardsByList[currentListId] || [];
+        return {
+          cardsByList: {
+            ...state.cardsByList,
+            [currentListId]: sortByPosition(
+              currentListCards.map((c) => (c.id === cardId ? updated : c))
+            ),
+          },
+        };
+      });
+
+      return { success: true, card: updated };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.message || 'Failed to update card',
+        fieldErrors: err.fieldErrors || {},
+      };
+    }
+  },
+
+  deleteCard: async (cardId) => {
+    try {
+      await cardService.deleteCard(cardId);
+      set((state) => {
+        const ownerListId = locateCardListId(state.cardsByList, cardId);
+        if (!ownerListId) return {};
+        return {
+          cardsByList: {
+            ...state.cardsByList,
+            [ownerListId]: (state.cardsByList[ownerListId] || []).filter(
+              (c) => c.id !== cardId
+            ),
+          },
+        };
+      });
+      return { success: true };
+    } catch (err) {
+      return {
+        success: false,
+        error: err.message || 'Failed to delete card',
+      };
+    }
+  },
+
+  moveCard: async (cardId, sourceListId, destinationListId, destinationIndex) => {
+    const previousCardsByList = get().cardsByList;
+    const resolvedSourceId = sourceListId || locateCardListId(previousCardsByList, cardId);
+    if (!resolvedSourceId || !destinationListId) {
+      return { success: false, error: 'Invalid source or destination list' };
+    }
+
+    const sourceCards = previousCardsByList[resolvedSourceId] || [];
+    const movingCard = sourceCards.find((c) => c.id === cardId);
+    if (!movingCard) {
+      return { success: false, error: 'Card not found' };
+    }
+
+    const rawDestCards = previousCardsByList[destinationListId] || [];
+    const { position, needsRebalance } = calculateInsertPosition(
+      rawDestCards,
+      destinationIndex,
+      cardId
+    );
+
+    const nextSourceCards = sourceCards.filter((c) => c.id !== cardId);
+    const baseDestCards =
+      resolvedSourceId === destinationListId
+        ? nextSourceCards
+        : sortByPosition(rawDestCards.filter((c) => c.id !== cardId));
+    const clampedIndex = Math.max(0, Math.min(destinationIndex, baseDestCards.length));
+    const optimisticCard = {
+      ...movingCard,
+      list: destinationListId,
+      position,
+    };
+    const nextDestCards = [...baseDestCards];
+    nextDestCards.splice(clampedIndex, 0, optimisticCard);
+
+    const optimisticMap = {
+      ...previousCardsByList,
+      [resolvedSourceId]: nextSourceCards,
+      [destinationListId]: nextDestCards,
+    };
+    set({ cardsByList: optimisticMap });
+
+    try {
+      const serverCard = await cardService.moveCard(cardId, {
+        destinationListId,
+        position,
+      });
+
+      if (needsRebalance) {
+        const balanced = buildRebalancedPositions(nextDestCards);
+        await Promise.all(
+          balanced.map((entry) => cardService.updateCard(entry.id, { position: entry.position }))
+        );
+        const balancedMap = new Map(balanced.map((b) => [b.id, b.position]));
+        set((state) => ({
+          cardsByList: {
+            ...state.cardsByList,
+            [destinationListId]: sortByPosition(
+              (state.cardsByList[destinationListId] || []).map((c) => ({
+                ...c,
+                position: balancedMap.get(c.id) ?? c.position,
+              }))
+            ),
+          },
+        }));
+      } else if (serverCard) {
+        const normalized = normalizeCardAssignees(serverCard);
+        set((state) => ({
+          cardsByList: {
+            ...state.cardsByList,
+            [destinationListId]: sortByPosition(
+              (state.cardsByList[destinationListId] || []).map((c) =>
+                c.id === cardId ? normalized : c
+              )
+            ),
+          },
+        }));
+      }
+
+      return { success: true, card: serverCard };
+    } catch (err) {
+      // Revert optimistic move when backend persistence fails
+      set({ cardsByList: previousCardsByList });
+      return {
+        success: false,
+        error: err.message || 'Failed to move card',
       };
     }
   },

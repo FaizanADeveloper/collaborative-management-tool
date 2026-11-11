@@ -18,6 +18,7 @@ export const KanbanColumn = ({
   index,
   totalLists,
   cards = [],
+  isCardDragDisabled = false,
   onRenameList,
   onMoveListLeft,
   onMoveListRight,
@@ -190,7 +191,12 @@ export const KanbanColumn = ({
                 }`}
               >
                 {cards.map((card, cardIdx) => (
-                  <TaskCard key={card.id} task={card} index={cardIdx} />
+                  <TaskCard
+                    key={card.id}
+                    card={card}
+                    index={cardIdx}
+                    isDragDisabled={isCardDragDisabled}
+                  />
                 ))}
                 {provided.placeholder}
 

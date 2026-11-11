@@ -1,132 +1,198 @@
-import React, { useState } from 'react';
+import React, { useState, useEffect } from 'react';
 import { useUIStore } from '../../store/useUIStore';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
+import { useBoardStore } from '../../store/useBoardStore';
 import { Modal } from '../common/Modal';
 import { Button } from '../common/Button';
-import { Input, Select } from '../common/Input';
+import { Input, Textarea, Select } from '../common/Input';
 import { Avatar } from '../common/Avatar';
-import { Plus, X, Tag } from 'lucide-react';
+import { Plus, X, AlertCircle } from 'lucide-react';
 
 export const TaskCreateModal = () => {
-  const { isCreateTaskOpen, closeCreateTask, defaultTaskStatus } = useUIStore();
-  const { addTask, users, activeProjectId, projects } = useWorkspaceStore();
+  const { isCreateCardOpen, defaultListId, closeCreateCard, addToast } = useUIStore();
+  const { members } = useWorkspaceStore();
+  const { lists, createCard } = useBoardStore();
 
+  const [listId, setListId] = useState('');
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [status, setStatus] = useState(defaultTaskStatus || 'todo');
   const [priority, setPriority] = useState('medium');
-  const [assigneeId, setAssigneeId] = useState(users[0]?.id || '');
-  const [storyPoints, setStoryPoints] = useState(3);
-  const [dueDate, setDueDate] = useState(
-    new Date(Date.now() + 7 * 86400000).toISOString().split('T')[0]
-  );
-  const [tagInput, setTagInput] = useState('');
-  const [tags, setTags] = useState(['Feature']);
-  const [subtasks, setSubtasks] = useState([]);
-  const [subtaskInput, setSubtaskInput] = useState('');
-  const [error, setError] = useState('');
+  const [selectedAssignees, setSelectedAssignees] = useState([]);
+  const [dueDate, setDueDate] = useState('');
+  const [labelInput, setLabelInput] = useState('');
+  const [labels, setLabels] = useState([]);
+  const [fieldErrors, setFieldErrors] = useState({});
+  const [formError, setFormError] = useState('');
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  const currentProject = projects.find(p => p.id === activeProjectId) || projects[0];
+  useEffect(() => {
+    if (isCreateCardOpen) {
+      const initialList =
+        lists.find((l) => l.id === defaultListId)?.id || lists[0]?.id || '';
+      setListId(initialList);
+      setTitle('');
+      setDescription('');
+      setPriority('medium');
+      setSelectedAssignees([]);
+      setDueDate('');
+      setLabelInput('');
+      setLabels([]);
+      setFieldErrors({});
+      setFormError('');
+      setIsSubmitting(false);
+    }
+  }, [isCreateCardOpen, defaultListId, lists]);
 
-  const handleAddTag = (e) => {
-    e.preventDefault();
-    if (tagInput.trim() && !tags.includes(tagInput.trim())) {
-      setTags([...tags, tagInput.trim()]);
-      setTagInput('');
+  const toggleAssignee = (memberId) => {
+    setSelectedAssignees((prev) =>
+      prev.includes(memberId)
+        ? prev.filter((id) => id !== memberId)
+        : [...prev, memberId]
+    );
+  };
+
+  const handleAddLabel = (e) => {
+    if (e) e.preventDefault();
+    const trimmed = labelInput.trim();
+    if (!trimmed) return;
+    if (trimmed.length > 50) {
+      setFieldErrors((prev) => ({
+        ...prev,
+        labels: 'Labels cannot exceed 50 characters',
+      }));
+      return;
+    }
+    if (!labels.includes(trimmed)) {
+      setLabels([...labels, trimmed]);
+    }
+    setLabelInput('');
+    if (fieldErrors.labels) {
+      setFieldErrors((prev) => ({ ...prev, labels: undefined }));
     }
   };
 
-  const handleRemoveTag = (tagToRemove) => {
-    setTags(tags.filter(t => t !== tagToRemove));
+  const handleRemoveLabel = (labelToRemove) => {
+    setLabels(labels.filter((l) => l !== labelToRemove));
   };
 
-  const handleAddSubtask = (e) => {
-    e.preventDefault();
-    if (subtaskInput.trim()) {
-      setSubtasks([...subtasks, { id: `st-${Date.now()}`, title: subtaskInput.trim(), done: false }]);
-      setSubtaskInput('');
+  const validate = () => {
+    const errors = {};
+    const trimmedTitle = title.trim();
+    if (!listId) {
+      errors.listId = 'Select a target list';
     }
+    if (!trimmedTitle) {
+      errors.title = 'Card title is required';
+    } else if (trimmedTitle.length > 200) {
+      errors.title = 'Card title cannot exceed 200 characters';
+    }
+    if (description.trim().length > 5000) {
+      errors.description = 'Card description cannot exceed 5000 characters';
+    }
+    setFieldErrors(errors);
+    return Object.keys(errors).length === 0;
   };
 
-  const handleRemoveSubtask = (id) => {
-    setSubtasks(subtasks.filter(st => st.id !== id));
-  };
-
-  const handleSubmit = (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    if (!title.trim()) {
-      setError('Task title is required');
+    setFormError('');
+    if (!validate()) return;
+
+    const payload = {
+      title: title.trim(),
+      description: description.trim(),
+      priority,
+      assignees: selectedAssignees,
+      labels,
+    };
+    if (dueDate) {
+      payload.dueDate = dueDate;
+    }
+
+    setIsSubmitting(true);
+    const result = await createCard(listId, payload);
+    setIsSubmitting(false);
+
+    if (!result.success) {
+      setFormError(result.error || 'Unable to create card');
+      if (result.fieldErrors) {
+        setFieldErrors((prev) => ({ ...prev, ...result.fieldErrors }));
+      }
       return;
     }
 
-    addTask({
-      title: title.trim(),
-      description: description.trim(),
-      status,
-      priority,
-      assigneeId,
-      storyPoints: Number(storyPoints) || 3,
-      dueDate,
-      tags,
-      subtasks,
+    addToast({
+      type: 'success',
+      title: 'Card created',
+      message: `${result.card.title} added to list.`,
     });
-
-    // Reset and close
-    setTitle('');
-    setDescription('');
-    setTags(['Feature']);
-    setSubtasks([]);
-    setError('');
-    closeCreateTask();
+    closeCreateCard();
   };
 
   return (
     <Modal
-      isOpen={isCreateTaskOpen}
-      onClose={closeCreateTask}
-      title="Create New Issue"
-      subtitle={`Adding to ${currentProject?.name} (${currentProject?.key})`}
-      maxWidth="max-w-2xl"
+      isOpen={isCreateCardOpen}
+      onClose={closeCreateCard}
+      title="Create Card"
+      subtitle="Add a tracked work item to your board."
+      maxWidth="max-w-xl"
     >
-      <form onSubmit={handleSubmit} className="space-y-4">
-        {/* Title */}
+      <form onSubmit={handleSubmit} className="space-y-4" noValidate>
+        {formError && (
+          <div
+            role="alert"
+            className="flex items-start gap-2 rounded-lg bg-rose-500/10 border border-rose-500/30 p-3 text-xs text-rose-500"
+          >
+            <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
+            <span>{formError}</span>
+          </div>
+        )}
+
         <Input
-          label="Issue Title *"
-          placeholder="e.g. Implement WebSocket binary heartbeat frames"
+          label="Card Title *"
+          placeholder="e.g. Implement OAuth session validation"
           value={title}
           onChange={(e) => {
             setTitle(e.target.value);
-            if (error) setError('');
+            if (fieldErrors.title) setFieldErrors((p) => ({ ...p, title: undefined }));
           }}
-          error={error}
+          error={fieldErrors.title}
           autoFocus
         />
 
-        {/* Description */}
-        <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1.5 select-none">
-            Description
-          </label>
-          <textarea
-            rows={3}
-            value={description}
-            onChange={(e) => setDescription(e.target.value)}
-            placeholder="Provide context, acceptance criteria, or architectural notes..."
-            className="w-full rounded-lg bg-slate-900/80 border border-slate-700/80 p-3 text-sm text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500 transition-colors"
-          />
-        </div>
+        <Textarea
+          label="Description"
+          placeholder="Add context, acceptance criteria, or notes..."
+          rows={3}
+          value={description}
+          onChange={(e) => {
+            setDescription(e.target.value);
+            if (fieldErrors.description) {
+              setFieldErrors((p) => ({ ...p, description: undefined }));
+            }
+          }}
+          error={fieldErrors.description}
+        />
 
-        {/* Grid: Status, Priority, Assignee, Story Points */}
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
           <Select
-            label="Initial Status"
-            value={status}
-            onChange={(e) => setStatus(e.target.value)}
+            label="List *"
+            value={listId}
+            onChange={(e) => {
+              setListId(e.target.value);
+              if (fieldErrors.listId) setFieldErrors((p) => ({ ...p, listId: undefined }));
+            }}
+            error={fieldErrors.listId}
           >
-            <option value="todo">To Do</option>
-            <option value="in_progress">In Progress</option>
-            <option value="in_review">In Review</option>
-            <option value="completed">Completed</option>
+            {lists.length === 0 ? (
+              <option value="">No lists available</option>
+            ) : (
+              lists.map((list) => (
+                <option key={list.id} value={list.id}>
+                  {list.name}
+                </option>
+              ))
+            )}
           </Select>
 
           <Select
@@ -134,149 +200,114 @@ export const TaskCreateModal = () => {
             value={priority}
             onChange={(e) => setPriority(e.target.value)}
           >
-            <option value="urgent">🔴 Urgent</option>
-            <option value="high">🟠 High</option>
-            <option value="medium">🔵 Medium</option>
-            <option value="low">⚪ Low</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+            <option value="urgent">Urgent</option>
           </Select>
 
-          <Select
-            label="Assignee"
-            value={assigneeId}
-            onChange={(e) => setAssigneeId(e.target.value)}
-          >
-            {users.map(u => (
-              <option key={u.id} value={u.id}>
-                {u.name} ({u.role})
-              </option>
-            ))}
-          </Select>
-
-          <div className="grid grid-cols-2 gap-2">
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                Story Points
-              </label>
-              <select
-                value={storyPoints}
-                onChange={(e) => setStoryPoints(Number(e.target.value))}
-                className="w-full rounded-lg bg-slate-900/80 border border-slate-700/80 px-3 py-2 text-sm text-slate-100 focus:outline-none focus:border-indigo-500"
-              >
-                {[1, 2, 3, 5, 8, 13, 21].map(pts => (
-                  <option key={pts} value={pts}>{pts} pts</option>
-                ))}
-              </select>
-            </div>
-
-            <div>
-              <label className="block text-xs font-medium text-slate-300 mb-1.5">
-                Due Date
-              </label>
-              <input
-                type="date"
-                value={dueDate}
-                onChange={(e) => setDueDate(e.target.value)}
-                className="w-full rounded-lg bg-slate-900/80 border border-slate-700/80 px-2 py-2 text-xs text-slate-100 focus:outline-none focus:border-indigo-500"
-              />
-            </div>
-          </div>
+          <Input
+            label="Due Date"
+            type="date"
+            value={dueDate}
+            onChange={(e) => setDueDate(e.target.value)}
+          />
         </div>
 
-        {/* Tags */}
+        {/* Assignees */}
         <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1.5">
-            Tags & Labels
+          <span className="block text-xs font-medium text-ink-secondary mb-1.5">
+            Assignees
+          </span>
+          {members.length === 0 ? (
+            <p className="text-xs text-ink-muted">No workspace members available.</p>
+          ) : (
+            <div className="flex flex-wrap gap-2">
+              {members.map((member) => {
+                const selected = selectedAssignees.includes(member.id);
+                return (
+                  <button
+                    key={member.id}
+                    type="button"
+                    onClick={() => toggleAssignee(member.id)}
+                    aria-pressed={selected}
+                    className={`inline-flex items-center gap-1.5 px-2.5 py-1 rounded-full text-xs border transition-colors ${
+                      selected
+                        ? 'bg-brand-subtle text-brand border-brand font-medium'
+                        : 'bg-subtle text-ink-secondary border-line hover:border-line-strong'
+                    }`}
+                  >
+                    <Avatar user={member} size="xs" />
+                    <span>{member.name}</span>
+                  </button>
+                );
+              })}
+            </div>
+          )}
+        </div>
+
+        {/* Labels */}
+        <div>
+          <label className="block text-xs font-medium text-ink-secondary mb-1.5">
+            Labels
           </label>
-          <div className="flex flex-wrap items-center gap-1.5 mb-2">
-            {tags.map((tag) => (
-              <span
-                key={tag}
-                className="inline-flex items-center gap-1 px-2 py-0.5 rounded text-xs bg-slate-800 text-slate-200 border border-slate-700"
-              >
-                <span>#{tag}</span>
-                <button
-                  type="button"
-                  onClick={() => handleRemoveTag(tag)}
-                  className="text-slate-400 hover:text-rose-400"
-                >
-                  <X className="w-3 h-3" />
-                </button>
-              </span>
-            ))}
-          </div>
-          <div className="flex items-center gap-2">
+          <div className="flex gap-2">
             <input
               type="text"
-              value={tagInput}
-              onChange={(e) => setTagInput(e.target.value)}
-              placeholder="Add a tag and press Enter..."
+              placeholder="Add label (e.g. Frontend) and click Add"
+              value={labelInput}
+              onChange={(e) => setLabelInput(e.target.value)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter') {
-                  handleAddTag(e);
+                  e.preventDefault();
+                  handleAddLabel();
                 }
               }}
-              className="flex-1 rounded-lg bg-slate-900/80 border border-slate-700/80 px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
+              className="flex-1 rounded-lg bg-subtle border border-line-strong px-3 py-1.5 text-sm text-ink placeholder-ink-muted focus:outline-none focus:border-brand"
             />
-            <Button type="button" size="xs" variant="secondary" onClick={handleAddTag}>
-              Add Tag
+            <Button type="button" variant="secondary" size="sm" icon={Plus} onClick={handleAddLabel}>
+              Add
             </Button>
           </div>
-        </div>
-
-        {/* Subtasks */}
-        <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1.5">
-            Checklist / Subtasks ({subtasks.length})
-          </label>
-          {subtasks.length > 0 && (
-            <div className="space-y-1.5 mb-2">
-              {subtasks.map((st) => (
-                <div
-                  key={st.id}
-                  className="flex items-center justify-between px-2.5 py-1.5 rounded-lg bg-slate-800/60 border border-slate-700/40 text-xs"
+          {fieldErrors.labels && (
+            <p className="mt-1 text-xs text-rose-500">{fieldErrors.labels}</p>
+          )}
+          {labels.length > 0 && (
+            <div className="flex flex-wrap gap-1.5 mt-2">
+              {labels.map((label) => (
+                <span
+                  key={label}
+                  className="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs bg-brand-subtle text-brand border border-brand/30"
                 >
-                  <span className="text-slate-200">{st.title}</span>
+                  <span>{label}</span>
                   <button
                     type="button"
-                    onClick={() => handleRemoveSubtask(st.id)}
-                    className="text-slate-400 hover:text-rose-400"
+                    aria-label={`Remove label ${label}`}
+                    onClick={() => handleRemoveLabel(label)}
+                    className="hover:text-ink"
                   >
-                    <X className="w-3.5 h-3.5" />
+                    <X className="w-3 h-3" />
                   </button>
-                </div>
+                </span>
               ))}
             </div>
           )}
-          <div className="flex items-center gap-2">
-            <input
-              type="text"
-              value={subtaskInput}
-              onChange={(e) => setSubtaskInput(e.target.value)}
-              placeholder="Add a checklist item and press Enter..."
-              onKeyDown={(e) => {
-                if (e.key === 'Enter') {
-                  handleAddSubtask(e);
-                }
-              }}
-              className="flex-1 rounded-lg bg-slate-900/80 border border-slate-700/80 px-3 py-1.5 text-xs text-slate-100 placeholder-slate-500 focus:outline-none focus:border-indigo-500"
-            />
-            <Button type="button" size="xs" variant="secondary" onClick={handleAddSubtask}>
-              Add Item
-            </Button>
-          </div>
         </div>
 
-        {/* Footer actions */}
-        <div className="pt-3 border-t border-slate-800 flex items-center justify-end gap-2.5">
-          <Button type="button" variant="ghost" onClick={closeCreateTask}>
+        <div className="pt-3 border-t border-line flex items-center justify-end gap-2.5">
+          <Button type="button" variant="ghost" onClick={closeCreateCard} disabled={isSubmitting}>
             Cancel
           </Button>
-          <Button type="submit" variant="primary">
-            Create Issue
+          <Button
+            type="submit"
+            variant="primary"
+            loading={isSubmitting}
+            disabled={lists.length === 0}
+          >
+            Create Card
           </Button>
         </div>
       </form>
     </Modal>
   );
 };
-
