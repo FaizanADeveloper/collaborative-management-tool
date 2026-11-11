@@ -1,14 +1,50 @@
 import React from 'react';
-import { describe, it, expect } from 'vitest';
+import { describe, it, expect, beforeEach, vi } from 'vitest';
 import { render, screen, fireEvent } from '@testing-library/react';
 import App from './App';
 import { EmptyState } from './components/common/EmptyState';
 import { ConfirmDialog } from './components/common/ConfirmDialog';
+import { useAuthStore } from './store/useAuthStore';
+import { setStoredToken } from './services/apiClient';
 
-describe('Frontend Application Shell & Design System', () => {
-  it('renders the application shell and supports light/dark theme switching', () => {
+describe('Frontend Application Shell & Protected Routing', () => {
+  beforeEach(() => {
+    vi.restoreAllMocks();
+    window.localStorage.clear();
+    window.history.replaceState({}, '', '/');
+    useAuthStore.setState({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      isHydrating: false,
+      authError: null,
+    });
+  });
+
+  it('redirects unauthenticated visitors to the login screen', async () => {
     render(<App />);
-    expect(screen.getAllByText(/Dashboard/i).length).toBeGreaterThan(0);
+    expect(await screen.findByRole('heading', { name: /sign in to syncflow/i })).toBeInTheDocument();
+  });
+
+  it('renders authenticated shell and supports light/dark theme switching', async () => {
+    setStoredToken('valid-jwt-token');
+    useAuthStore.setState({
+      token: 'valid-jwt-token',
+      isHydrating: true,
+    });
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue({
+      ok: true,
+      status: 200,
+      headers: { get: () => 'application/json' },
+      json: async () => ({
+        success: true,
+        data: { user: { id: 'u-1', name: 'Alex Morgan', email: 'alex@example.com' } },
+      }),
+    });
+
+    render(<App />);
+    const dashboardMatches = await screen.findAllByText(/Dashboard/i);
+    expect(dashboardMatches.length).toBeGreaterThan(0);
 
     const themeButton = screen.getByRole('button', { name: /switch to light theme/i });
     expect(document.documentElement.classList.contains('dark')).toBe(true);

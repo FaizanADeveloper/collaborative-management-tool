@@ -1,80 +1,119 @@
 import React, { useState } from 'react';
-import { useNavigate, Link } from 'react-router-dom';
+import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
-import { initialUsers } from '../../services/mockData';
-import { Zap, ShieldCheck, ArrowRight, Lock, Mail, Sparkles, CheckCircle2 } from 'lucide-react';
+import { Zap, Lock, Mail, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export const LoginPage = () => {
-  const [email, setEmail] = useState('alex.morgan@syncflow.io');
-  const [password, setPassword] = useState('password123');
+  const [email, setEmail] = useState('');
+  const [password, setPassword] = useState('');
+  const [showPassword, setShowPassword] = useState(false);
   const [loading, setLoading] = useState(false);
+  const [formError, setFormError] = useState('');
+  const [fieldErrors, setFieldErrors] = useState({});
+
   const { login } = useAuthStore();
   const navigate = useNavigate();
+  const location = useLocation();
+  const redirectPath = location.state?.from?.pathname || '/dashboard';
 
-  const handleLogin = async (e) => {
+  const handleSubmit = async (e) => {
     e.preventDefault();
-    setLoading(true);
-    await login(email, password);
-    setLoading(false);
-    navigate('/dashboard');
-  };
+    setFormError('');
+    setFieldErrors({});
 
-  const handleQuickDemoFill = (user) => {
-    setEmail(user.email);
-    setPassword('demoPass123');
+    const nextFieldErrors = {};
+    if (!email.trim()) nextFieldErrors.email = 'Email is required';
+    if (!password) nextFieldErrors.password = 'Password is required';
+    if (Object.keys(nextFieldErrors).length > 0) {
+      setFieldErrors(nextFieldErrors);
+      return;
+    }
+
+    setLoading(true);
+    const result = await login({ email, password });
+    setLoading(false);
+
+    if (result.success) {
+      navigate(redirectPath, { replace: true });
+    } else {
+      setFormError(result.error || 'Unable to sign in. Please try again.');
+      setFieldErrors(result.fieldErrors || {});
+    }
   };
 
   return (
-    <div className="min-h-screen bg-[#090d16] flex text-slate-100">
-      {/* Left Form Area */}
-      <div className="flex-1 flex flex-col justify-between p-6 sm:p-12 lg:p-16 max-w-xl mx-auto w-full">
-        {/* Brand Header */}
+    <div className="min-h-screen bg-canvas text-ink flex">
+      {/* Form Column */}
+      <div className="flex-1 flex flex-col justify-between p-6 sm:p-10 lg:p-16 max-w-lg mx-auto w-full">
         <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-gradient-to-tr from-indigo-600 to-indigo-400 text-white flex items-center justify-center font-bold text-sm shadow-md shadow-indigo-500/30">
-            <Zap className="w-4 h-4" />
+          <div className="w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center">
+            <Zap className="w-4 h-4" aria-hidden="true" />
           </div>
-          <span className="font-bold text-xl tracking-tight text-white">SyncFlow</span>
+          <span className="font-semibold text-lg tracking-tight text-ink">SyncFlow</span>
         </div>
 
-        {/* Center Card */}
         <div className="my-auto py-8">
-          <div className="mb-8">
-            <h1 className="text-2xl sm:text-3xl font-extrabold text-white tracking-tight">
-              Sign in to your workspace
+          <div className="mb-6">
+            <h1 className="text-2xl font-bold text-ink tracking-tight">
+              Sign in to SyncFlow
             </h1>
-            <p className="text-xs sm:text-sm text-slate-400 mt-2">
-              Access real-time sprint boards, velocity metrics, and team presence.
+            <p className="text-sm text-ink-muted mt-1.5">
+              Enter your account credentials to access your workspaces and boards.
             </p>
           </div>
 
-          <form onSubmit={handleLogin} className="space-y-4">
+          {formError && (
+            <div
+              role="alert"
+              className="mb-5 flex items-start gap-2.5 rounded-lg border border-rose-500/30 bg-rose-500/10 px-3.5 py-2.5 text-xs text-rose-600 dark:text-rose-300"
+            >
+              <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" aria-hidden="true" />
+              <span>{formError}</span>
+            </div>
+          )}
+
+          <form onSubmit={handleSubmit} className="space-y-4" noValidate>
             <Input
-              label="Work Email"
+              label="Email address"
               type="email"
               icon={Mail}
               value={email}
-              onChange={(e) => setEmail(e.target.value)}
+              onChange={(e) => {
+                setEmail(e.target.value);
+                if (fieldErrors.email) setFieldErrors((prev) => ({ ...prev, email: '' }));
+              }}
               placeholder="you@company.com"
+              error={fieldErrors.email}
+              autoComplete="email"
               required
             />
 
-            <div>
-              <div className="flex items-center justify-between mb-1.5">
-                <label className="text-xs font-medium text-slate-300">Password</label>
-                <Link to="/forgot-password" className="text-xs text-indigo-400 hover:text-indigo-300">
-                  Forgot password?
-                </Link>
-              </div>
+            <div className="relative">
               <Input
-                type="password"
+                label="Password"
+                type={showPassword ? 'text' : 'password'}
                 icon={Lock}
                 value={password}
-                onChange={(e) => setPassword(e.target.value)}
-                placeholder="••••••••"
+                onChange={(e) => {
+                  setPassword(e.target.value);
+                  if (fieldErrors.password) setFieldErrors((prev) => ({ ...prev, password: '' }));
+                }}
+                placeholder="Enter your password"
+                error={fieldErrors.password}
+                autoComplete="current-password"
+                className="pr-10"
                 required
               />
+              <button
+                type="button"
+                onClick={() => setShowPassword((prev) => !prev)}
+                aria-label={showPassword ? 'Hide password' : 'Show password'}
+                className="absolute right-2.5 top-[30px] p-1 rounded text-ink-muted hover:text-ink transition-colors"
+              >
+                {showPassword ? <EyeOff className="w-4 h-4" /> : <Eye className="w-4 h-4" />}
+              </button>
             </div>
 
             <Button
@@ -82,97 +121,54 @@ export const LoginPage = () => {
               variant="primary"
               size="lg"
               loading={loading}
-              className="w-full shadow-lg shadow-indigo-600/25"
+              className="w-full"
             >
-              Sign In to SyncFlow
+              Sign in
             </Button>
           </form>
 
-          {/* Quick Demo Accounts Helper */}
-          <div className="mt-8 pt-6 border-t border-slate-800">
-            <div className="flex items-center justify-between mb-3">
-              <span className="text-xs font-semibold text-slate-400 uppercase tracking-wider">
-                Instant Demo Fill
-              </span>
-              <span className="text-[10px] text-indigo-400 font-mono">One-click signin</span>
-            </div>
-            <div className="grid grid-cols-3 gap-2">
-              {initialUsers.slice(0, 3).map((u) => (
-                <button
-                  key={u.id}
-                  type="button"
-                  onClick={() => handleQuickDemoFill(u)}
-                  className="p-2 rounded-lg bg-slate-900 border border-slate-800 hover:border-indigo-500/60 hover:bg-slate-800 text-left transition-all group"
-                >
-                  <p className="text-xs font-semibold text-slate-200 group-hover:text-indigo-300 truncate">
-                    {u.name.split(' ')[0]}
-                  </p>
-                  <p className="text-[10px] text-slate-500 truncate">{u.role.split(' ')[0]}</p>
-                </button>
-              ))}
-            </div>
-          </div>
-
-          <p className="text-center text-xs text-slate-400 mt-6">
-            Don't have an account?{' '}
-            <Link to="/signup" className="text-indigo-400 font-semibold hover:underline">
-              Sign up for free
+          <p className="text-center text-xs text-ink-muted mt-6">
+            Don&apos;t have an account?{' '}
+            <Link to="/signup" className="text-brand font-medium hover:underline">
+              Create an account
             </Link>
           </p>
         </div>
 
-        {/* Footer */}
-        <div className="text-xs text-slate-500 flex items-center justify-between">
-          <span>&copy; 2026 SyncFlow Inc.</span>
-          <span className="font-mono text-[11px] text-emerald-400">● Socket.io Operational</span>
-        </div>
+        <p className="text-xs text-ink-muted">
+          Collaborative Agile Workspace
+        </p>
       </div>
 
-      {/* Right Visual Showcase Panel */}
-      <div className="hidden lg:flex flex-1 bg-gradient-to-br from-indigo-950 via-slate-900 to-[#070b12] border-l border-slate-800/80 p-12 flex-col justify-between relative overflow-hidden">
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-indigo-500/10 rounded-full blur-3xl pointer-events-none" />
-
-        <div className="relative z-10 flex justify-end">
-          <span className="px-3 py-1 rounded-full text-xs font-mono font-medium bg-indigo-500/20 text-indigo-300 border border-indigo-500/30">
-            v2.4 Agile Engine
-          </span>
-        </div>
-
-        <div className="relative z-10 space-y-6 max-w-md">
-          <div className="space-y-3">
-            <h2 className="text-3xl font-extrabold text-white tracking-tight leading-tight">
-              Real-time agile workspace built for high-velocity teams.
+      {/* Overview Panel */}
+      <div className="hidden lg:flex flex-1 bg-surface border-l border-line p-12 flex-col justify-center">
+        <div className="max-w-md mx-auto space-y-6">
+          <div className="space-y-2">
+            <span className="text-xs font-medium text-brand uppercase tracking-wider">
+              Workspace Hierarchy
+            </span>
+            <h2 className="text-2xl font-bold text-ink tracking-tight leading-snug">
+              Structured execution from workspace to individual cards.
             </h2>
-            <p className="text-sm text-slate-300 leading-relaxed">
-              Designed with the speed of Linear, the structure of Jira, and the flexibility of Trello.
+            <p className="text-sm text-ink-secondary leading-relaxed">
+              Organize teams inside role-based workspaces, configure boards and lists to match your delivery cadence, and track every issue cleanly.
             </p>
           </div>
 
-          <div className="space-y-3 pt-2">
+          <ul className="space-y-3 pt-2">
             {[
-              'Sub-20ms optimistic drag-and-drop state syncing',
-              'Real-time teammate presence & live card focus rings',
-              'Automated sprint burndown velocity charts'
-            ].map((feat, i) => (
-              <div key={i} className="flex items-center gap-3 text-xs text-slate-200">
-                <CheckCircle2 className="w-4 h-4 text-emerald-400 flex-shrink-0" />
-                <span>{feat}</span>
-              </div>
+              'Role-based workspace membership & invite codes',
+              'Dynamic boards, ordered lists, and card positioning',
+              'Persistent drag-and-drop workflows backed by MongoDB Atlas',
+            ].map((item) => (
+              <li key={item} className="flex items-center gap-2.5 text-sm text-ink-secondary">
+                <CheckCircle2 className="w-4 h-4 text-emerald-500 flex-shrink-0" aria-hidden="true" />
+                <span>{item}</span>
+              </li>
             ))}
-          </div>
-        </div>
-
-        <div className="relative z-10 p-4 rounded-xl bg-slate-900/60 border border-slate-800 text-xs text-slate-400">
-          <p className="italic text-slate-300">
-            &ldquo;SyncFlow cut our sprint planning meetings in half. The real-time board updates are instantaneous.&rdquo;
-          </p>
-          <div className="mt-2 flex items-center gap-2">
-            <span className="font-semibold text-white">Alex Morgan</span>
-            <span>— Lead Systems Architect</span>
-          </div>
+          </ul>
         </div>
       </div>
     </div>
   );
 };
-

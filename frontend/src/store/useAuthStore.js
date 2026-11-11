@@ -1,66 +1,139 @@
 import { create } from 'zustand';
-import { storage, STORAGE_KEYS } from '../services/storageService';
-import { initialUsers } from '../services/mockData';
+import {
+  clearStoredToken,
+  getStoredToken,
+  registerUnauthorizedHandler,
+  setStoredToken,
+} from '../services/apiClient';
+import { authService } from '../services/authService';
+
+const logoutListeners = new Set();
+
+export const registerLogoutCleanup = (fn) => {
+  if (typeof fn === 'function') {
+    logoutListeners.add(fn);
+    return () => logoutListeners.delete(fn);
+  }
+  return () => {};
+};
+
+const notifyLogoutCleanup = () => {
+  for (const listener of logoutListeners) {
+    try {
+      listener();
+    } catch {
+      // Ignore cleanup listener errors
+    }
+  }
+};
+
+const initialToken = getStoredToken();
 
 export const useAuthStore = create((set, get) => ({
-  user: storage.get(STORAGE_KEYS.USER, initialUsers[0]),
-  isAuthenticated: true,
+  user: null,
+  token: initialToken,
+  isAuthenticated: false,
+  isHydrating: Boolean(initialToken),
+  authError: null,
 
-  login: async (email, password) => {
-    // Frontend mock simulation
-    const matched = initialUsers.find(u => u.email.toLowerCase() === email.toLowerCase()) || {
-      id: `user-${Date.now()}`,
-      name: email.split('@')[0].replace('.', ' ').replace(/\b\w/g, l => l.toUpperCase()),
-      email: email,
-      avatar: 'https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=150&auto=format&fit=crop&q=80',
-      role: 'Product Engineer',
-      department: 'Engineering',
-      status: 'online',
-      initials: 'US',
-      color: 'bg-indigo-600',
-    };
+  hydrateAuth: async () => {
+    const token = getStoredToken();
+    if (!token) {
+      set({
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isHydrating: false,
+      });
+      return null;
+    }
 
-    storage.set(STORAGE_KEYS.USER, matched);
-    set({ user: matched, isAuthenticated: true });
-    return { success: true };
+    set({ isHydrating: true, authError: null });
+    try {
+      const user = await authService.getMe();
+      set({
+        user,
+        token,
+        isAuthenticated: true,
+        isHydrating: false,
+        authError: null,
+      });
+      return user;
+    } catch {
+      clearStoredToken();
+      notifyLogoutCleanup();
+      set({
+        user: null,
+        token: null,
+        isAuthenticated: false,
+        isHydrating: false,
+      });
+      return null;
+    }
   },
 
-  signup: async (name, email, password) => {
-    const initials = name
-      .split(' ')
-      .map(n => n[0])
-      .join('')
-      .toUpperCase()
-      .substring(0, 2);
+  login: async ({ email, password }) => {
+    set({ authError: null });
+    try {
+      const data = await authService.login({ email, password });
+      setStoredToken(data.token);
+      set({
+        user: data.user,
+        token: data.token,
+        isAuthenticated: true,
+        isHydrating: false,
+        authError: null,
+      });
+      return { success: true, user: data.user };
+    } catch (err) {
+      set({ authError: err.message });
+      return {
+        success: false,
+        error: err.message,
+        fieldErrors: err.fieldErrors || {},
+      };
+    }
+  },
 
-    const newUser = {
-      id: `user-${Date.now()}`,
-      name,
-      email,
-      avatar: `https://api.dicebear.com/7.x/initials/svg?seed=${encodeURIComponent(name)}`,
-      role: 'Full Stack Member',
-      department: 'Product Development',
-      status: 'online',
-      initials: initials || 'ME',
-      color: 'bg-indigo-600',
-    };
-
-    storage.set(STORAGE_KEYS.USER, newUser);
-    set({ user: newUser, isAuthenticated: true });
-    return { success: true };
+  register: async ({ name, email, password, avatar }) => {
+    set({ authError: null });
+    try {
+      const data = await authService.register({ name, email, password, avatar });
+      setStoredToken(data.token);
+      set({
+        user: data.user,
+        token: data.token,
+        isAuthenticated: true,
+        isHydrating: false,
+        authError: null,
+      });
+      return { success: true, user: data.user };
+    } catch (err) {
+      set({ authError: err.message });
+      return {
+        success: false,
+        error: err.message,
+        fieldErrors: err.fieldErrors || {},
+      };
+    }
   },
 
   logout: () => {
-    storage.remove(STORAGE_KEYS.USER);
-    set({ user: null, isAuthenticated: false });
+    clearStoredToken();
+    notifyLogoutCleanup();
+    set({
+      user: null,
+      token: null,
+      isAuthenticated: false,
+      isHydrating: false,
+      authError: null,
+    });
   },
-
-  updateProfile: (updates) => {
-    const current = get().user;
-    if (!current) return;
-    const updated = { ...current, ...updates };
-    storage.set(STORAGE_KEYS.USER, updated);
-    set({ user: updated });
-  }
 }));
 
+registerUnauthorizedHandler(() => {
+  const { isAuthenticated, logout } = useAuthStore.getState();
+  if (isAuthenticated) {
+    logout();
+  }
+});

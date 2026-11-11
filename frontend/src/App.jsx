@@ -21,10 +21,48 @@ import { SignupPage } from './pages/auth/SignupPage';
 import { useUIStore } from './store/useUIStore';
 import { useAuthStore } from './store/useAuthStore';
 
+const HydrationLoader = () => (
+  <div className="min-h-screen bg-canvas text-ink flex items-center justify-center p-6">
+    <div className="flex flex-col items-center gap-3">
+      <div className="w-7 h-7 rounded-full border-2 border-brand border-t-transparent animate-spin" />
+      <p className="text-xs text-ink-muted font-medium">Restoring session...</p>
+    </div>
+  </div>
+);
+
+const ProtectedRoute = ({ children }) => {
+  const { isAuthenticated, isHydrating } = useAuthStore();
+  const location = useLocation();
+
+  if (isHydrating) {
+    return <HydrationLoader />;
+  }
+
+  if (!isAuthenticated) {
+    return <Navigate to="/login" replace state={{ from: location }} />;
+  }
+
+  return children;
+};
+
+const PublicOnlyRoute = ({ children }) => {
+  const { isAuthenticated, isHydrating } = useAuthStore();
+  const location = useLocation();
+
+  if (isHydrating) {
+    return <HydrationLoader />;
+  }
+
+  if (isAuthenticated) {
+    const target = location.state?.from?.pathname || '/dashboard';
+    return <Navigate to={target} replace />;
+  }
+
+  return children;
+};
+
 const AppLayout = ({ children }) => {
   const { sidebarCollapsed, theme } = useUIStore();
-  const { isAuthenticated } = useAuthStore();
-  const location = useLocation();
 
   useEffect(() => {
     if (theme === 'dark') {
@@ -33,10 +71,6 @@ const AppLayout = ({ children }) => {
       document.documentElement.classList.remove('dark');
     }
   }, [theme]);
-
-  if (!isAuthenticated) {
-    return <Navigate to="/login" replace state={{ from: location }} />;
-  }
 
   return (
     <div className="min-h-screen bg-canvas text-ink flex flex-col">
@@ -63,65 +97,110 @@ const AppLayout = ({ children }) => {
   );
 };
 
-export default function App() {
-  return (
-    <BrowserRouter>
-      <Routes>
-        <Route path="/login" element={<LoginPage />} />
-        <Route path="/signup" element={<SignupPage />} />
-        <Route path="/register" element={<SignupPage />} />
+export function AppRoutes() {
+  const hydrateAuth = useAuthStore((state) => state.hydrateAuth);
 
-        <Route
-          path="/dashboard"
-          element={
+  useEffect(() => {
+    hydrateAuth();
+  }, [hydrateAuth]);
+
+  return (
+    <Routes>
+      <Route
+        path="/login"
+        element={
+          <PublicOnlyRoute>
+            <LoginPage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/signup"
+        element={
+          <PublicOnlyRoute>
+            <SignupPage />
+          </PublicOnlyRoute>
+        }
+      />
+      <Route
+        path="/register"
+        element={
+          <PublicOnlyRoute>
+            <SignupPage />
+          </PublicOnlyRoute>
+        }
+      />
+
+      <Route
+        path="/dashboard"
+        element={
+          <ProtectedRoute>
             <AppLayout>
               <DashboardPage />
             </AppLayout>
-          }
-        />
-        <Route
-          path="/board"
-          element={
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/board"
+        element={
+          <ProtectedRoute>
             <AppLayout>
               <BoardPage />
             </AppLayout>
-          }
-        />
-        <Route
-          path="/projects"
-          element={
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects"
+        element={
+          <ProtectedRoute>
             <AppLayout>
               <ProjectsPage />
             </AppLayout>
-          }
-        />
-        <Route
-          path="/projects/:projectId"
-          element={
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/projects/:projectId"
+        element={
+          <ProtectedRoute>
             <AppLayout>
               <ProjectDetailsPage />
             </AppLayout>
-          }
-        />
-        <Route
-          path="/team"
-          element={
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/team"
+        element={
+          <ProtectedRoute>
             <AppLayout>
               <TeamPage />
             </AppLayout>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
+          </ProtectedRoute>
+        }
+      />
+      <Route
+        path="/settings"
+        element={
+          <ProtectedRoute>
             <AppLayout>
               <SettingsPage />
             </AppLayout>
-          }
-        />
+          </ProtectedRoute>
+        }
+      />
 
-        <Route path="*" element={<Navigate to="/dashboard" replace />} />
-      </Routes>
+      <Route path="*" element={<Navigate to="/dashboard" replace />} />
+    </Routes>
+  );
+}
+
+export default function App() {
+  return (
+    <BrowserRouter>
+      <AppRoutes />
     </BrowserRouter>
   );
 }

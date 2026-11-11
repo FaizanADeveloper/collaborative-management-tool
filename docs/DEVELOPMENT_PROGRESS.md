@@ -35,12 +35,25 @@ Tracks verified implementation milestones, testing, builds, and commit history f
 - **Testing & Build:**
   - Frontend tests (`npm.cmd --prefix frontend test`): 3/3 passed.
   - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 1.00s).
+- **Commit:**
+  - `7d4b910` — `feat(frontend): establish consistent product design system`
+
+**Milestone 3 (Centralized API Client & Real JWT Authentication):**
+- **Completed:**
+  - Built centralized `fetch` API client (`frontend/src/services/apiClient.js`) with `/api` proxy / `VITE_API_URL` support, Bearer JWT header injection, 15s abort timeout handling, field-level Zod error normalization (`errors: [{ field, message }]`), and automatic 401 token purge + session reset callback.
+  - Created `frontend/src/services/authService.js` wired to `POST /api/auth/register`, `POST /api/auth/login`, `GET /api/auth/me`, and `GET /api/health`.
+  - Refactored `frontend/src/store/useAuthStore.js` to remove hardcoded demo authentication and added `hydrateAuth()`, `login()`, `register()`, `logout()`, and logout cleanup listener registration.
+  - Connected `LoginPage.jsx` and `SignupPage.jsx` to real API calls with Zod-aligned client validation, password visibility toggle, inline server field errors, and removal of mock demo credentials and unimplemented marketing claims.
+  - Updated `App.jsx` with `HydrationLoader`, `ProtectedRoute`, `PublicOnlyRoute`, and `/register` route alias.
+- **Testing & Build:**
+  - Frontend tests (`npm.cmd --prefix frontend test`): 3 test files, 14/14 tests passed (`apiClient.test.js`, `App.test.jsx`, `AuthFlow.test.jsx`).
+  - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 926ms).
 
 **Remaining work:**
-- Refine consistent dual-theme product design system and reusable layout/common UI primitives.
-- Replace mocked `localStorage` auth/workspaces/board stores with centralized REST API client and real MongoDB Atlas backend persistence.
-- Implement dynamic Workspace -> Board -> List -> Card workflows and persistent midpoint drag-and-drop.
-- Add comprehensive frontend test coverage and evaluate scoped Week 3 real-time sync.
+- Replace mocked `localStorage` workspace, board, list, and card stores with live REST API integration and persistent drag-and-drop.
+- Build dynamic Workspace -> Board -> List -> Card workflows with role-based permissions and confirmation dialogs.
+- Refactor Dashboard analytics, Command Palette, and responsive states around real MongoDB Atlas data.
+- Add comprehensive frontend component/integration coverage, run end-to-end live verification, and evaluate scoped Week 3 real-time sync.
 
 **Next session:**
-- Implement Milestone 2 (Consistent product design system, dual theme variables, accessible modals/dialogs, and cleaned application shell).
+- Implement Milestone 4 (Real workspace creation, switching, invite code generation/joining, member management, and workspace settings).
