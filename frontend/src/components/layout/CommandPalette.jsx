@@ -388,7 +388,7 @@ export const CommandPalette = () => {
               select
             </span>
           </div>
-          <span className="text-brand font-medium">SyncFlow</span>
+          <span className="text-brand font-medium">Flowdesk</span>
         </div>
       </div>
     </div>

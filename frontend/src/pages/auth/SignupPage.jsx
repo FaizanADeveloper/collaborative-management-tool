@@ -3,7 +3,8 @@ import { useNavigate, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
-import { Zap, Lock, Mail, User, Eye, EyeOff, AlertCircle, Link2 } from 'lucide-react';
+import { BrandLogo } from '../../components/common/BrandLogo';
+import { Lock, Mail, User, Eye, EyeOff, AlertCircle, Link2 } from 'lucide-react';
 
 export const SignupPage = () => {
   const [name, setName] = useState('');
@@ -76,17 +77,12 @@ export const SignupPage = () => {
 
   return (
     <div className="min-h-screen bg-canvas text-ink flex flex-col justify-between p-6 sm:p-10 max-w-lg mx-auto w-full">
-      <div className="flex items-center gap-2.5">
-        <div className="w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center">
-          <Zap className="w-4 h-4" aria-hidden="true" />
-        </div>
-        <span className="font-semibold text-lg tracking-tight text-ink">SyncFlow</span>
-      </div>
+      <BrandLogo size="md" />
 
       <div className="my-auto py-8">
         <div className="mb-6">
           <h1 className="text-2xl font-bold text-ink tracking-tight">
-            Create your account
+            Create your Flowdesk account
           </h1>
           <p className="text-sm text-ink-muted mt-1.5">
             Register to create or join team workspaces and manage boards.
@@ -194,7 +190,7 @@ export const SignupPage = () => {
       </div>
 
       <p className="text-xs text-ink-muted">
-        Collaborative Agile Workspace
+        Collaborative Project &amp; Team Workspace
       </p>
     </div>
   );

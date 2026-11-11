@@ -23,7 +23,7 @@ describe('Frontend Application Shell & Protected Routing', () => {
 
   it('redirects unauthenticated visitors to the login screen', async () => {
     render(<App />);
-    expect(await screen.findByRole('heading', { name: /sign in to syncflow/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /sign in to flowdesk/i })).toBeInTheDocument();
   });
 
   it('renders authenticated shell and supports light/dark theme switching', async () => {

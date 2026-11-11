@@ -143,7 +143,7 @@ describe('Edge Cases, Error Recovery & Cross-Store Lifecycle', () => {
     await user.click(screen.getByRole('button', { name: /alice/i }));
     await user.click(screen.getByRole('menuitem', { name: /sign out/i }));
 
-    expect(await screen.findByRole('heading', { name: /sign in to syncflow/i })).toBeInTheDocument();
+    expect(await screen.findByRole('heading', { name: /sign in to flowdesk/i })).toBeInTheDocument();
     expect(getStoredToken()).toBeNull();
     expect(useWorkspaceStore.getState().workspaces).toEqual([]);
     expect(useWorkspaceStore.getState().activeWorkspaceId).toBeNull();

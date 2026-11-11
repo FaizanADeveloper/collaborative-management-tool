@@ -3,7 +3,8 @@ import { useNavigate, useLocation, Link } from 'react-router-dom';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Button } from '../../components/common/Button';
 import { Input } from '../../components/common/Input';
-import { Zap, Lock, Mail, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
+import { BrandLogo } from '../../components/common/BrandLogo';
+import { Lock, Mail, Eye, EyeOff, AlertCircle, CheckCircle2 } from 'lucide-react';
 
 export const LoginPage = () => {
   const [email, setEmail] = useState('');
@@ -47,17 +48,12 @@ export const LoginPage = () => {
     <div className="min-h-screen bg-canvas text-ink flex">
       {/* Form Column */}
       <div className="flex-1 flex flex-col justify-between p-6 sm:p-10 lg:p-16 max-w-lg mx-auto w-full">
-        <div className="flex items-center gap-2.5">
-          <div className="w-8 h-8 rounded-lg bg-brand text-white flex items-center justify-center">
-            <Zap className="w-4 h-4" aria-hidden="true" />
-          </div>
-          <span className="font-semibold text-lg tracking-tight text-ink">SyncFlow</span>
-        </div>
+        <BrandLogo size="md" />
 
         <div className="my-auto py-8">
           <div className="mb-6">
             <h1 className="text-2xl font-bold text-ink tracking-tight">
-              Sign in to SyncFlow
+              Sign in to Flowdesk
             </h1>
             <p className="text-sm text-ink-muted mt-1.5">
               Enter your account credentials to access your workspaces and boards.
@@ -136,7 +132,7 @@ export const LoginPage = () => {
         </div>
 
         <p className="text-xs text-ink-muted">
-          Collaborative Agile Workspace
+          Collaborative Project &amp; Team Workspace
         </p>
       </div>
 

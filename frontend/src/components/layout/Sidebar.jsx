@@ -4,6 +4,7 @@ import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import { useBoardStore } from '../../store/useBoardStore';
 import { useUIStore } from '../../store/useUIStore';
 import { RoleBadge } from '../common/Badge';
+import { BrandMark } from '../common/BrandLogo';
 import {
   LayoutDashboard,
   KanbanSquare,
@@ -15,7 +16,6 @@ import {
   ChevronRight,
   Plus,
   KeyRound,
-  Zap,
   Check,
   X,
 } from 'lucide-react';
@@ -99,9 +99,7 @@ export const Sidebar = () => {
               aria-haspopup="menu"
               className="flex items-center gap-2.5 min-w-0 p-1.5 rounded-lg hover:bg-subtle transition-colors flex-1 text-left focus:outline-none focus-visible:ring-2 focus-visible:ring-brand"
             >
-              <div className="w-7 h-7 rounded-lg bg-brand text-white flex items-center justify-center font-semibold text-xs flex-shrink-0">
-                <Zap className="w-3.5 h-3.5" aria-hidden="true" />
-              </div>
+              <BrandMark size="sm" />
 
               {!sidebarCollapsed && (
                 <div className="flex flex-col min-w-0 flex-1">
