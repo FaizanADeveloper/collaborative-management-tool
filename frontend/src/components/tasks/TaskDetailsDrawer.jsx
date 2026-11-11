@@ -59,6 +59,8 @@ export const TaskDetailsDrawer = () => {
   const [confirmDeleteOpen, setConfirmDeleteOpen] = useState(false);
   const [isDeleting, setIsDeleting] = useState(false);
 
+  // Sync local form draft only when opening a different card so cross-list moves
+  // do not discard unsaved title, description, or metadata edits.
   useEffect(() => {
     if (card) {
       setTitle(card.title || '');
@@ -70,7 +72,7 @@ export const TaskDetailsDrawer = () => {
       setLabelInput('');
       setSaveError('');
     }
-  }, [card]);
+  }, [card?.id]);
 
   if (!selectedCardId || !card) return null;
 

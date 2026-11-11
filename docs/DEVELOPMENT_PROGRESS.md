@@ -36,7 +36,7 @@ Tracks verified implementation milestones, testing, builds, and commit history f
   - Frontend tests (`npm.cmd --prefix frontend test`): 3/3 passed.
   - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 1.00s).
 - **Commit:**
-  - `7d4b910` — `feat(frontend): establish consistent product design system`
+- `7d4b910` — `feat(frontend): establish consistent product design system`
 
 **Milestone 3 (Centralized API Client & Real JWT Authentication):**
 - **Completed:**
@@ -49,7 +49,7 @@ Tracks verified implementation milestones, testing, builds, and commit history f
   - Frontend tests (`npm.cmd --prefix frontend test`): 3 test files, 14/14 tests passed (`apiClient.test.js`, `App.test.jsx`, `AuthFlow.test.jsx`).
   - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 926ms).
 - **Commit:**
-  - `023ce56` — `feat(frontend): implement centralized API client and JWT authentication`
+- `023ce56` — `feat(frontend): implement centralized API client and JWT authentication`
 
 **Milestone 4 (Workspace Management & Role-Based Membership):**
 - **Completed:**
@@ -61,7 +61,7 @@ Tracks verified implementation milestones, testing, builds, and commit history f
   - Frontend tests (`npm.cmd --prefix frontend test`): 4 test files, 19/19 tests passed (`WorkspaceFlow.test.jsx` added).
   - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 818ms).
 - **Commit:**
-  - `68d9712` — `feat(frontend): integrate workspace management and membership`
+- `68d9712` — `feat(frontend): integrate workspace management and membership`
 
 **Milestone 5 (Dynamic Board & List Management):**
 - **Completed:**
@@ -73,7 +73,7 @@ Tracks verified implementation milestones, testing, builds, and commit history f
   - Frontend tests (`npm.cmd --prefix frontend test`): 6 test files, 26/26 tests passed (`positioning.test.js` and `BoardAndList.test.jsx` added).
   - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 1.24s).
 - **Commit:**
-  - `389128b` — `feat(frontend): implement dynamic board and list management`
+- `389128b` — `feat(frontend): implement dynamic board and list management`
 
 **Milestone 6 (Card Management & Persistent Drag-and-Drop):**
 - **Completed:**
@@ -84,7 +84,7 @@ Tracks verified implementation milestones, testing, builds, and commit history f
   - Frontend tests (`npm.cmd --prefix frontend test`): 7 test files, 29/29 tests passed (`CardAndDnd.test.jsx` added covering card creation, editing, filtering, deletion, midpoint move, and failure rollback).
   - Production build (`npm.cmd --prefix frontend run build`): passed (`dist/` built in 2.15s).
 - **Commit:**
-  - `88704ed` — `feat(frontend): integrate card management and persistent drag and drop`
+- `88704ed` — `feat(frontend): integrate card management and persistent drag and drop`
 
 **Milestone 7 (Real-Data Dashboard, Command Palette & Mock Retirement):**
 - **Completed:**
@@ -94,10 +94,24 @@ Tracks verified implementation milestones, testing, builds, and commit history f
 - **Testing & Build:**
   - Frontend tests (`npm.cmd --prefix frontend test`): 8 test files, 32/32 tests passed (`DashboardAndCommandPalette.test.jsx` added).
   - Production build (`npm.cmd --prefix frontend run build`): passed (`428.24 kB` main chunk, built in 1.96s).
+- **Commit:**
+- `00f61d4` — `feat(frontend): complete dashboard and responsive application experience`
+
+**Milestone 8 (Edge-Case Coverage, Drawer Sync Fix & Browser UI E2E Verification):**
+- **Completed:**
+  - Fixed a real state-sync bug caught during headless Chromium testing in `TaskDetailsDrawer.jsx`: changed draft form synchronization from `[card]` to `[card?.id]` so moving a card between lists inside the drawer preserves unsaved title/description edits until `Save Changes`.
+  - Added `frontend/src/pages/IntegrationEdgeCases.test.jsx` verifying end-to-end session hydration (`auth/me -> workspace -> boards -> lists -> cards`), full cross-store state wipe on sign-out, mobile sidebar toggle, error-banner rendering across `BoardsPage` and `TeamPage`, precision-exhaustion sequential card rebalancing (`[1000, 2000, 3000]`), and drawer draft preservation.
+  - Executed headless Google Chrome CDP E2E UI verification against the built `frontend/dist` bundle (`http://127.0.0.1:3000` proxying `/api` to a local stateful API harness on port `5000`), verifying signup, reload session hydration, workspace/board/list/card workflows, drawer move + reload persistence, light/dark background updates (`rgb(11, 15, 23)` vs `rgb(248, 250, 252)`), and `390x844` mobile sidebar toggle with zero console errors, zero uncaught exceptions, and zero HTTP 5xx responses.
+- **Testing & Build:**
+  - Frontend tests (`npm.cmd --prefix frontend test`): 9 test files, 36/36 tests passed.
+  - Production build (`npm.cmd --prefix frontend run build`): passed (`428.25 kB` main chunk, built in 3.60s).
+  - Backend unit tests (`npm.cmd --prefix backend test`): 9 test suites, 183/183 passed.
+  - Live MongoDB Atlas check: Express backend startup against live Atlas could not reach the cluster from this session's current IP (`Atlas IP whitelist` error); therefore live Atlas E2E and optional Week 3 Socket.IO synchronization were deferred rather than destabilizing verified Week 1-2 deliverables or introducing unverified backend changes.
 
 **Remaining work:**
-- Run full end-to-end live verification against the Express + MongoDB Atlas backend (auth, workspace, board, list, card, drag-and-drop reload persistence) with clean scoped test data teardown.
-- Add edge-case frontend integration tests (network/API failure banners, mobile drawer behavior, full multi-entity E2E store flows) and evaluate scoped Week 3 real-time sync.
+- Re-whitelist the active developer IP in MongoDB Atlas Network Access and execute live Express + Atlas end-to-end smoke checks (`npm.cmd --prefix backend run test:integration` and live browser run against `backend/src/server.js`).
+- Week 3 (optional): Authenticated Socket.IO real-time board synchronization and multi-session live convergence.
+- Week 4 (deferred): Redis scaling, full-text search indexing, notification service, and production deployment pipelines.
 
 **Next session:**
-- Implement Milestone 8 (Integration & failure-state test coverage plus live end-to-end verification).
+- Update MongoDB Atlas IP whitelist, verify live end-to-end persistence against `backend/src/server.js`, and evaluate Week 3 authenticated Socket.IO board room events.
