@@ -6,6 +6,7 @@ import {
   setStoredToken,
 } from '../services/apiClient';
 import { authService } from '../services/authService';
+import { disconnectSocket } from '../services/socketClient';
 
 const logoutListeners = new Set();
 
@@ -60,6 +61,7 @@ export const useAuthStore = create((set, get) => ({
       });
       return user;
     } catch {
+      disconnectSocket();
       clearStoredToken();
       notifyLogoutCleanup();
       set({
@@ -119,6 +121,7 @@ export const useAuthStore = create((set, get) => ({
   },
 
   logout: () => {
+    disconnectSocket();
     clearStoredToken();
     notifyLogoutCleanup();
     set({

@@ -145,3 +145,24 @@ Tracks verified implementation milestones, testing, builds, and commit history f
 **Files added / updated:**
 - Added `frontend/public/favicon.svg`, `frontend/src/components/common/BrandLogo.jsx`.
 - Updated `frontend/index.html`, `frontend/src/index.css`, `frontend/tailwind.config.js`, `frontend/src/App.jsx`, auth/workspace/dashboard/kanban/common components, `frontend/src/App.test.jsx`, `frontend/src/pages/IntegrationEdgeCases.test.jsx`, and `docs/DEVELOPMENT_PROGRESS.md`.
+
+## Week 3 Phase 3A — Authenticated Socket.IO Foundation
+
+**Completed:**
+- Installed matching `socket.io` (`^4.8.4`) on the backend and `socket.io-client` (`^4.8.4`) on the frontend (`socket.io-client` also added to `backend` devDependencies for real handshake testing).
+- Implemented modular backend Socket.IO gateway under `backend/src/socket/`:
+  - `backend/src/socket/index.js`: Attaches Socket.IO to the shared Node HTTP server using `env.CLIENT_URL` CORS settings, exports `initSocketServer`, `getIO`, and `closeSocketServer`.
+  - `backend/src/socket/auth.js`: Handshake JWT authentication middleware (`socketAuthMiddleware`) reusing `verifyToken`, `mongoose.isObjectIdOrHexString`, and `User.findById` to reject unauthenticated/expired/unknown connections cleanly and populate sanitized `socket.data.user` metadata.
+  - `backend/src/socket/rooms.js`: Room lifecycle handlers (`workspace:join`, `workspace:leave`, `board:join`, `board:leave`, plus automatic `user:<userId>` private room join) enforcing `WorkspaceMember` authorization for workspace rooms and parent `Board` -> `WorkspaceMember` authorization for board rooms.
+- Updated `backend/src/server.js` to create `http.createServer(app)`, attach `initSocketServer(server)`, and tear down Socket.IO cleanly during `gracefulShutdown`, leaving `backend/src/app.js` isolated for HTTP Supertest suites.
+- Added frontend Socket.IO client service `frontend/src/services/socketClient.js` with environment/proxy URL resolution (`VITE_SOCKET_URL`, `VITE_API_URL`, or Vite `/socket.io` WS proxy in `frontend/vite.config.js`), JWT connection lifecycle, automatic disconnect/cleanup on logout or 401 (`useAuthStore.js`), immediate teardown on handshake auth rejection, and workspace/board room synchronization in `frontend/src/App.jsx`.
+
+**Verification:**
+- Backend unit + Socket.IO tests (`npm.cmd --prefix backend test`): 10 suites, 189/189 tests passed (including `backend/tests/socket.test.js`).
+- Backend Atlas integration tests (`npm.cmd --prefix backend run test:integration`): 2 suites, 12/12 tests passed.
+- Frontend unit tests (`npm.cmd --prefix frontend test`): 10 files, 40/40 tests passed (including `frontend/src/services/socketClient.test.js`).
+- Frontend production build (`npm.cmd --prefix frontend run build`): passed cleanly.
+
+**Files added / updated:**
+- Added `backend/src/socket/index.js`, `backend/src/socket/auth.js`, `backend/src/socket/rooms.js`, `backend/tests/socket.test.js`, `frontend/src/services/socketClient.js`, and `frontend/src/services/socketClient.test.js`.
+- Updated `backend/package.json`, `backend/package-lock.json`, `backend/src/server.js`, `frontend/package.json`, `frontend/package-lock.json`, `frontend/vite.config.js`, `frontend/.env.example`, `frontend/src/store/useAuthStore.js`, `frontend/src/App.jsx`, and `docs/DEVELOPMENT_PROGRESS.md`.

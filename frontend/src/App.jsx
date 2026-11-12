@@ -25,6 +25,12 @@ import { useUIStore } from './store/useUIStore';
 import { useAuthStore } from './store/useAuthStore';
 import { useWorkspaceStore } from './store/useWorkspaceStore';
 import { useBoardStore } from './store/useBoardStore';
+import {
+  connectSocket,
+  disconnectSocket,
+  setActiveWorkspaceRoom,
+  setActiveBoardRoom,
+} from './services/socketClient';
 
 const HydrationLoader = () => (
   <div className="min-h-screen bg-canvas text-ink flex items-center justify-center p-6">
@@ -78,7 +84,7 @@ const AppLayout = ({ children }) => {
     activeWorkspaceId,
     fetchWorkspaces,
   } = useWorkspaceStore();
-  const { fetchBoards, clearForWorkspaceChange } = useBoardStore();
+  const { activeBoardId, fetchBoards, clearForWorkspaceChange } = useBoardStore();
 
   useEffect(() => {
     if (isAuthenticated && !hasLoadedWorkspaces && !isLoadingWorkspaces) {
@@ -94,6 +100,20 @@ const AppLayout = ({ children }) => {
       clearForWorkspaceChange();
     }
   }, [isAuthenticated, activeWorkspaceId, fetchBoards, clearForWorkspaceChange]);
+
+  useEffect(() => {
+    setActiveWorkspaceRoom(isAuthenticated ? activeWorkspaceId : null);
+    return () => {
+      setActiveWorkspaceRoom(null);
+    };
+  }, [isAuthenticated, activeWorkspaceId]);
+
+  useEffect(() => {
+    setActiveBoardRoom(isAuthenticated ? activeBoardId : null);
+    return () => {
+      setActiveBoardRoom(null);
+    };
+  }, [isAuthenticated, activeBoardId]);
 
   return (
     <div className="min-h-screen bg-canvas text-ink flex flex-col">
@@ -124,6 +144,8 @@ const AppLayout = ({ children }) => {
 
 export function AppRoutes() {
   const hydrateAuth = useAuthStore((state) => state.hydrateAuth);
+  const isAuthenticated = useAuthStore((state) => state.isAuthenticated);
+  const token = useAuthStore((state) => state.token);
   const theme = useUIStore((state) => state.theme);
 
   useEffect(() => {
@@ -137,6 +159,16 @@ export function AppRoutes() {
   useEffect(() => {
     hydrateAuth();
   }, [hydrateAuth]);
+
+  useEffect(() => {
+    if (isAuthenticated && token) {
+      connectSocket(token);
+    } else {
+      disconnectSocket();
+    }
+  }, [isAuthenticated, token]);
+
+  useEffect(() => () => disconnectSocket(), []);
 
   return (
     <Routes>
