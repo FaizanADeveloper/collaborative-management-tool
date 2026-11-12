@@ -9,6 +9,7 @@ let joinedBoardId = null;
 let connectionStatus = 'disconnected';
 
 const statusListeners = new Set();
+const eventHandlers = new Map();
 
 const setStatus = (nextStatus) => {
   if (connectionStatus === nextStatus) return;
@@ -127,6 +128,12 @@ export const connectSocket = (token) => {
   socket = client;
   setStatus('connecting');
 
+  for (const [event, handlers] of eventHandlers.entries()) {
+    for (const handler of handlers) {
+      client.on(event, handler);
+    }
+  }
+
   client.on('connect', () => {
     setStatus('connected');
     syncDesiredRooms();
@@ -187,4 +194,44 @@ export const subscribeSocketStatus = (listener) => {
   if (typeof listener !== 'function') return () => {};
   statusListeners.add(listener);
   return () => statusListeners.delete(listener);
+};
+
+/**
+ * Registers a Socket.IO event handler that persists across socket reconnects
+ * until the returned cleanup function is invoked.
+ *
+ * @param {string} event
+ * @param {Function} handler
+ * @returns {() => void}
+ */
+export const subscribeSocketEvent = (event, handler) => {
+  if (typeof event !== 'string' || !event || typeof handler !== 'function') {
+    return () => {};
+  }
+
+  let handlers = eventHandlers.get(event);
+  if (!handlers) {
+    handlers = new Set();
+    eventHandlers.set(event, handlers);
+  }
+
+  if (!handlers.has(handler)) {
+    handlers.add(handler);
+    if (socket) {
+      socket.on(event, handler);
+    }
+  }
+
+  return () => {
+    const activeHandlers = eventHandlers.get(event);
+    if (activeHandlers) {
+      activeHandlers.delete(handler);
+      if (activeHandlers.size === 0) {
+        eventHandlers.delete(event);
+      }
+    }
+    if (socket) {
+      socket.off(event, handler);
+    }
+  };
 };

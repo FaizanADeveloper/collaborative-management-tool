@@ -67,6 +67,39 @@ const locateCardListId = (cardsByList, cardId) => {
   return null;
 };
 
+const pendingMoveCardIds = new Set();
+const recentlyDeletedCardIds = new Set();
+
+const markCardDeletedLocally = (cardId) => {
+  if (!cardId) return;
+  recentlyDeletedCardIds.add(cardId);
+  if (recentlyDeletedCardIds.size > 200) {
+    const oldest = recentlyDeletedCardIds.values().next().value;
+    if (oldest) recentlyDeletedCardIds.delete(oldest);
+  }
+};
+
+const getTimestampMs = (doc) => {
+  if (!doc?.updatedAt) return 0;
+  const ts = new Date(doc.updatedAt).getTime();
+  return Number.isFinite(ts) ? ts : 0;
+};
+
+const isStaleOrDuplicateVersion = (existingDoc, incomingDoc) => {
+  if (!existingDoc || !incomingDoc) return false;
+  const existingMs = getTimestampMs(existingDoc);
+  const incomingMs = getTimestampMs(incomingDoc);
+  return existingMs > 0 && incomingMs > 0 && incomingMs <= existingMs;
+};
+
+const upsertSortedById = (items = [], nextItem) => {
+  const exists = items.some((item) => item.id === nextItem.id);
+  const merged = exists
+    ? items.map((item) => (item.id === nextItem.id ? nextItem : item))
+    : [...items, nextItem];
+  return sortByPosition(merged);
+};
+
 export const useBoardStore = create((set, get) => ({
   boards: [],
   boardsWorkspaceId: null,
@@ -325,7 +358,7 @@ export const useBoardStore = create((set, get) => ({
       }
 
       set((state) => ({
-        lists: sortByPosition([...state.lists, list]),
+        lists: upsertSortedById(state.lists, list),
         cardsByList: {
           ...state.cardsByList,
           [list.id]: state.cardsByList[list.id] || [],
@@ -443,12 +476,13 @@ export const useBoardStore = create((set, get) => ({
       }
 
       const card = normalizeCardAssignees(created);
+      recentlyDeletedCardIds.delete(card.id);
       set((state) => {
         const existing = state.cardsByList[listId] || [];
         return {
           cardsByList: {
             ...state.cardsByList,
-            [listId]: sortByPosition([...existing, card]),
+            [listId]: upsertSortedById(existing, card),
           },
         };
       });
@@ -499,6 +533,7 @@ export const useBoardStore = create((set, get) => ({
   deleteCard: async (cardId) => {
     try {
       await cardService.deleteCard(cardId);
+      markCardDeletedLocally(cardId);
       set((state) => {
         const ownerListId = locateCardListId(state.cardsByList, cardId);
         if (!ownerListId) return {};
@@ -560,6 +595,7 @@ export const useBoardStore = create((set, get) => ({
       [destinationListId]: nextDestCards,
     };
     set({ cardsByList: optimisticMap });
+    pendingMoveCardIds.add(cardId);
 
     try {
       const serverCard = await cardService.moveCard(cardId, {
@@ -606,10 +642,229 @@ export const useBoardStore = create((set, get) => ({
         success: false,
         error: err.message || 'Failed to move card',
       };
+    } finally {
+      pendingMoveCardIds.delete(cardId);
     }
   },
 
+  applySocketCardCreated: (payload) => {
+    const incoming = payload?.card;
+    const boardId = payload?.boardId || incoming?.board;
+    const listId = payload?.listId || incoming?.list;
+    if (!incoming?.id || !listId) return;
+
+    set((state) => {
+      if (!state.activeBoardId || boardId !== state.activeBoardId) return {};
+      if (pendingMoveCardIds.has(incoming.id) || recentlyDeletedCardIds.has(incoming.id)) {
+        return {};
+      }
+
+      const existingListId = locateCardListId(state.cardsByList, incoming.id);
+      if (existingListId) {
+        const existingCard = (state.cardsByList[existingListId] || []).find(
+          (c) => c.id === incoming.id
+        );
+        if (isStaleOrDuplicateVersion(existingCard, incoming)) {
+          return {};
+        }
+        const normalized = normalizeCardAssignees(incoming);
+        return {
+          cardsByList: {
+            ...state.cardsByList,
+            [existingListId]: upsertSortedById(state.cardsByList[existingListId] || [], normalized),
+          },
+        };
+      }
+
+      const normalized = normalizeCardAssignees(incoming);
+      return {
+        cardsByList: {
+          ...state.cardsByList,
+          [listId]: upsertSortedById(state.cardsByList[listId] || [], normalized),
+        },
+      };
+    });
+  },
+
+  applySocketCardUpdated: (payload) => {
+    const incoming = payload?.card;
+    const boardId = payload?.boardId || incoming?.board;
+    if (!incoming?.id) return;
+
+    set((state) => {
+      if (!state.activeBoardId || boardId !== state.activeBoardId) return {};
+      if (pendingMoveCardIds.has(incoming.id) || recentlyDeletedCardIds.has(incoming.id)) {
+        return {};
+      }
+
+      const currentListId = locateCardListId(state.cardsByList, incoming.id);
+      if (!currentListId) return {};
+
+      const existingCard = (state.cardsByList[currentListId] || []).find(
+        (c) => c.id === incoming.id
+      );
+      if (isStaleOrDuplicateVersion(existingCard, incoming)) {
+        return {};
+      }
+
+      const targetListId = incoming.list || payload?.listId || currentListId;
+      const normalized = normalizeCardAssignees(incoming);
+
+      if (targetListId === currentListId) {
+        return {
+          cardsByList: {
+            ...state.cardsByList,
+            [currentListId]: upsertSortedById(state.cardsByList[currentListId] || [], normalized),
+          },
+        };
+      }
+
+      return {
+        cardsByList: {
+          ...state.cardsByList,
+          [currentListId]: (state.cardsByList[currentListId] || []).filter(
+            (c) => c.id !== incoming.id
+          ),
+          [targetListId]: upsertSortedById(state.cardsByList[targetListId] || [], normalized),
+        },
+      };
+    });
+  },
+
+  applySocketCardMoved: (payload) => {
+    const incoming = payload?.card;
+    const boardId = payload?.boardId || incoming?.board;
+    const toListId = payload?.toListId || incoming?.list;
+    if (!incoming?.id || !toListId) return;
+
+    set((state) => {
+      if (!state.activeBoardId || boardId !== state.activeBoardId) return {};
+      if (pendingMoveCardIds.has(incoming.id) || recentlyDeletedCardIds.has(incoming.id)) {
+        return {};
+      }
+
+      const currentListId = locateCardListId(state.cardsByList, incoming.id);
+      const existingCard = currentListId
+        ? (state.cardsByList[currentListId] || []).find((c) => c.id === incoming.id)
+        : null;
+
+      if (existingCard) {
+        const existingMs = getTimestampMs(existingCard);
+        const incomingMs = getTimestampMs(incoming);
+        if (existingMs > 0 && incomingMs > 0 && incomingMs < existingMs) {
+          return {};
+        }
+        if (
+          currentListId === toListId &&
+          Number(existingCard.position) === Number(incoming.position) &&
+          existingMs > 0 &&
+          incomingMs === existingMs
+        ) {
+          return {};
+        }
+      }
+
+      const normalized = normalizeCardAssignees({
+        ...incoming,
+        list: toListId,
+      });
+
+      const nextCardsByList = {};
+      for (const [listId, cards] of Object.entries(state.cardsByList)) {
+        nextCardsByList[listId] = (cards || []).filter((c) => c.id !== incoming.id);
+      }
+
+      nextCardsByList[toListId] = upsertSortedById(nextCardsByList[toListId] || [], normalized);
+
+      return { cardsByList: nextCardsByList };
+    });
+  },
+
+  applySocketCardDeleted: (payload) => {
+    const cardId = payload?.cardId;
+    const boardId = payload?.boardId;
+    if (!cardId) return;
+
+    set((state) => {
+      if (!state.activeBoardId || boardId !== state.activeBoardId) return {};
+      markCardDeletedLocally(cardId);
+
+      let changed = false;
+      const nextCardsByList = {};
+      for (const [listId, cards] of Object.entries(state.cardsByList)) {
+        const filtered = (cards || []).filter((c) => {
+          if (c.id === cardId) {
+            changed = true;
+            return false;
+          }
+          return true;
+        });
+        nextCardsByList[listId] = filtered;
+      }
+
+      return changed ? { cardsByList: nextCardsByList } : {};
+    });
+  },
+
+  applySocketListCreated: (payload) => {
+    const incoming = payload?.list;
+    const boardId = payload?.boardId || incoming?.board;
+    if (!incoming?.id) return;
+
+    set((state) => {
+      if (!state.activeBoardId || boardId !== state.activeBoardId) return {};
+      const existing = state.lists.find((l) => l.id === incoming.id);
+      if (existing && isStaleOrDuplicateVersion(existing, incoming)) {
+        return {};
+      }
+      return {
+        lists: upsertSortedById(state.lists, incoming),
+        cardsByList: {
+          ...state.cardsByList,
+          [incoming.id]: state.cardsByList[incoming.id] || [],
+        },
+      };
+    });
+  },
+
+  applySocketListUpdated: (payload) => {
+    const incoming = payload?.list;
+    const boardId = payload?.boardId || incoming?.board;
+    if (!incoming?.id) return;
+
+    set((state) => {
+      if (!state.activeBoardId || boardId !== state.activeBoardId) return {};
+      const existing = state.lists.find((l) => l.id === incoming.id);
+      if (!existing || isStaleOrDuplicateVersion(existing, incoming)) {
+        return {};
+      }
+      return {
+        lists: upsertSortedById(state.lists, incoming),
+      };
+    });
+  },
+
+  applySocketListDeleted: (payload) => {
+    const listId = payload?.listId;
+    const boardId = payload?.boardId;
+    if (!listId) return;
+
+    set((state) => {
+      if (!state.activeBoardId || boardId !== state.activeBoardId) return {};
+      if (!state.lists.some((l) => l.id === listId)) return {};
+
+      const nextCardsByList = { ...state.cardsByList };
+      delete nextCardsByList[listId];
+      return {
+        lists: state.lists.filter((l) => l.id !== listId),
+        cardsByList: nextCardsByList,
+      };
+    });
+  },
+
   resetBoardState: () => {
+    pendingMoveCardIds.clear();
+    recentlyDeletedCardIds.clear();
     boardsRequestCounter += 1;
     detailsRequestCounter += 1;
     writeSavedBoardId(null);

@@ -3,6 +3,12 @@ const List = require('../models/List');
 const Board = require('../models/Board');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const ApiError = require('../utils/ApiError');
+const {
+  emitCardCreated,
+  emitCardUpdated,
+  emitCardMoved,
+  emitCardDeleted,
+} = require('../socket/events');
 
 /**
  * Create a new card in a list
@@ -53,7 +59,10 @@ const createCard = async (listId, data, userId) => {
     labels: data.labels || [],
   });
 
-  return card.toJSON ? card.toJSON() : card;
+  const serialized = card.toJSON ? card.toJSON() : card;
+  emitCardCreated({ card: serialized, actorId: userId });
+
+  return serialized;
 };
 
 /**
@@ -172,7 +181,10 @@ const updateCard = async (cardId, data, userId) => {
   await card.save();
   await card.populate('assignees', 'name email avatar');
 
-  return card.toJSON ? card.toJSON() : card;
+  const serialized = card.toJSON ? card.toJSON() : card;
+  emitCardUpdated({ card: serialized, actorId: userId });
+
+  return serialized;
 };
 
 /**
@@ -201,7 +213,14 @@ const deleteCard = async (cardId, userId) => {
     throw ApiError.forbidden('Access denied. You are not a member of this workspace.');
   }
 
+  const deletedMeta = {
+    cardId: card._id ? card._id.toString() : String(cardId),
+    listId: card.list ? card.list.toString() : null,
+    boardId: card.board ? card.board.toString() : null,
+  };
+
   await Card.findByIdAndDelete(cardId);
+  emitCardDeleted({ ...deletedMeta, actorId: userId });
 
   return null;
 };
@@ -243,13 +262,23 @@ const moveCard = async (cardId, { destinationListId, position }, userId) => {
     throw ApiError.forbidden('Access denied. You are not a member of this workspace.');
   }
 
+  const previousListId = card.list ? card.list.toString() : null;
+
   card.list = destinationListId;
   card.position = position;
 
   await card.save();
   await card.populate('assignees', 'name email avatar');
 
-  return card.toJSON ? card.toJSON() : card;
+  const serialized = card.toJSON ? card.toJSON() : card;
+  emitCardMoved({
+    card: serialized,
+    fromListId: previousListId,
+    toListId: destinationListId,
+    actorId: userId,
+  });
+
+  return serialized;
 };
 
 module.exports = {

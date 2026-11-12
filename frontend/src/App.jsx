@@ -30,6 +30,7 @@ import {
   disconnectSocket,
   setActiveWorkspaceRoom,
   setActiveBoardRoom,
+  subscribeSocketEvent,
 } from './services/socketClient';
 
 const HydrationLoader = () => (
@@ -114,6 +115,25 @@ const AppLayout = ({ children }) => {
       setActiveBoardRoom(null);
     };
   }, [isAuthenticated, activeBoardId]);
+
+  useEffect(() => {
+    if (!isAuthenticated) return undefined;
+
+    const boardActions = useBoardStore.getState();
+    const unsubscribers = [
+      subscribeSocketEvent('card:created', boardActions.applySocketCardCreated),
+      subscribeSocketEvent('card:updated', boardActions.applySocketCardUpdated),
+      subscribeSocketEvent('card:moved', boardActions.applySocketCardMoved),
+      subscribeSocketEvent('card:deleted', boardActions.applySocketCardDeleted),
+      subscribeSocketEvent('list:created', boardActions.applySocketListCreated),
+      subscribeSocketEvent('list:updated', boardActions.applySocketListUpdated),
+      subscribeSocketEvent('list:deleted', boardActions.applySocketListDeleted),
+    ];
+
+    return () => {
+      unsubscribers.forEach((unsubscribe) => unsubscribe());
+    };
+  }, [isAuthenticated]);
 
   return (
     <div className="min-h-screen bg-canvas text-ink flex flex-col">

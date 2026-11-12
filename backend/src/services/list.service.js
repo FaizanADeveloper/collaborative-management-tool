@@ -3,6 +3,11 @@ const Board = require('../models/Board');
 const Card = require('../models/Card');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const ApiError = require('../utils/ApiError');
+const {
+  emitListCreated,
+  emitListUpdated,
+  emitListDeleted,
+} = require('../socket/events');
 
 /**
  * Create a new list inside a board
@@ -47,7 +52,10 @@ const createList = async (boardId, { name, position }, userId) => {
     position: listPosition,
   });
 
-  return list.toJSON ? list.toJSON() : list;
+  const serialized = list.toJSON ? list.toJSON() : list;
+  emitListCreated({ list: serialized, actorId: userId });
+
+  return serialized;
 };
 
 /**
@@ -113,7 +121,10 @@ const updateList = async (listId, data, userId) => {
 
   await list.save();
 
-  return list.toJSON ? list.toJSON() : list;
+  const serialized = list.toJSON ? list.toJSON() : list;
+  emitListUpdated({ list: serialized, actorId: userId });
+
+  return serialized;
 };
 
 /**
@@ -142,10 +153,13 @@ const deleteList = async (listId, userId) => {
     throw ApiError.forbidden('Access denied. You are not a member of this workspace.');
   }
 
+  const boardId = list.board ? list.board.toString() : null;
+
   // Cascade delete child cards
   await Card.deleteMany({ list: listId });
 
   await List.findByIdAndDelete(listId);
+  emitListDeleted({ listId: String(listId), boardId, actorId: userId });
 
   return null;
 };

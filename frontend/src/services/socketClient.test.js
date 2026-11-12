@@ -62,6 +62,7 @@ import {
   getSocket,
   getSocketStatus,
   subscribeSocketStatus,
+  subscribeSocketEvent,
 } from './socketClient';
 import { useAuthStore } from '../store/useAuthStore';
 import { setStoredToken } from './apiClient';
@@ -168,5 +169,29 @@ describe('Phase 3A: Frontend Socket.IO Client Lifecycle', () => {
     expect(second).not.toBe(first);
     expect(second.options.auth).toEqual({ token: 'token-beta' });
     expect(getSocket()).toBe(second);
+  });
+
+  it('registers socket event listeners cleanly, avoids duplicate subscriptions, and cleans up on unsubscribe', () => {
+    const handler = vi.fn();
+    const unsub1 = subscribeSocketEvent('card:created', handler);
+    const unsub2 = subscribeSocketEvent('card:created', handler);
+
+    const firstSocket = connectSocket('token-listener-1');
+    expect(firstSocket.on).toHaveBeenCalledWith('card:created', handler);
+
+    firstSocket.trigger('card:created', { boardId: 'b-1', card: { id: 'c-1' } });
+    expect(handler).toHaveBeenCalledTimes(1);
+
+    // Reconnecting/replacing token re-attaches active handler cleanly
+    const secondSocket = connectSocket('token-listener-2');
+    secondSocket.trigger('card:created', { boardId: 'b-1', card: { id: 'c-2' } });
+    expect(handler).toHaveBeenCalledTimes(2);
+
+    unsub1();
+    unsub2();
+    expect(secondSocket.off).toHaveBeenCalledWith('card:created', handler);
+
+    secondSocket.trigger('card:created', { boardId: 'b-1', card: { id: 'c-3' } });
+    expect(handler).toHaveBeenCalledTimes(2);
   });
 });

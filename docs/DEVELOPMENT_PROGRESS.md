@@ -166,3 +166,23 @@ Tracks verified implementation milestones, testing, builds, and commit history f
 **Files added / updated:**
 - Added `backend/src/socket/index.js`, `backend/src/socket/auth.js`, `backend/src/socket/rooms.js`, `backend/tests/socket.test.js`, `frontend/src/services/socketClient.js`, and `frontend/src/services/socketClient.test.js`.
 - Updated `backend/package.json`, `backend/package-lock.json`, `backend/src/server.js`, `frontend/package.json`, `frontend/package-lock.json`, `frontend/vite.config.js`, `frontend/.env.example`, `frontend/src/store/useAuthStore.js`, `frontend/src/App.jsx`, and `docs/DEVELOPMENT_PROGRESS.md`.
+
+## Week 3 Phase 3B — Live Kanban Board Synchronization
+
+**Completed:**
+- Created sanitized board event broadcaster `backend/src/socket/events.js` (`SOCKET_EVENTS`, `emitBoardEvent`, `emitCardCreated`, `emitCardUpdated`, `emitCardMoved`, `emitCardDeleted`, `emitListCreated`, `emitListUpdated`, and `emitListDeleted`) targeting only authorized `board:<boardId>` Socket.IO rooms (`getBoardRoom`) with ObjectId validation and whitelisted response fields (no tokens, passwords, or Mongoose internals).
+- Integrated post-persistence broadcasts into `backend/src/services/card.service.js` (`createCard`, `updateCard`, `moveCard`, `deleteCard`) and `backend/src/services/list.service.js` (`createList`, `updateList`, `deleteList`) so broadcasts occur strictly after successful database writes and never fire on failed or unauthorized operations.
+- Extended `frontend/src/services/socketClient.js` with `subscribeSocketEvent` for reconnect-safe event registration and explicit listener cleanup (`socket.off`) on unmount.
+- Added idempotent, stale-safe Zustand synchronization handlers in `frontend/src/store/useBoardStore.js` (`applySocketCardCreated`, `applySocketCardUpdated`, `applySocketCardMoved`, `applySocketCardDeleted`, `applySocketListCreated`, `applySocketListUpdated`, `applySocketListDeleted`) with active-board filtering, optimistic move protection (`pendingMoveCardIds`), deleted-card resurrection guards (`recentlyDeletedCardIds`), timestamp ordering checks, and deduplicated `createCard` / `createList` upserts.
+- Wired authenticated board/list socket listener registration and cleanup in `frontend/src/App.jsx` (`AppLayout`).
+
+**Verification:**
+- Backend unit & board-sync tests (`npm.cmd --prefix backend test`): 11 suites, 192/192 tests passed (including `backend/tests/boardSync.test.js` covering post-persistence emits, failure non-broadcast, room targeting, cross-workspace isolation, and payload sanitization).
+- Backend MongoDB Atlas integration tests (`npm.cmd --prefix backend run test:integration`): 2 suites, 12/12 tests passed.
+- Frontend unit tests (`npm.cmd --prefix frontend test`): 11 test files, 47/47 tests passed (including `frontend/src/store/boardRealtimeSync.test.js` and updated `frontend/src/services/socketClient.test.js`).
+- Frontend production build (`npm.cmd --prefix frontend run build`): passed.
+- Two-session headless Chrome verification against live Express + Vite + MongoDB Atlas: verified real-time card create, edit, move across columns, and delete syncing from Session A to Session B without page refresh, zero duplicate cards in Session A, and zero event leakage when Session B switched to a separate workspace/board.
+
+**Files added / updated:**
+- Added `backend/src/socket/events.js`, `backend/tests/boardSync.test.js`, and `frontend/src/store/boardRealtimeSync.test.js`.
+- Updated `backend/src/services/card.service.js`, `backend/src/services/list.service.js`, `frontend/src/services/socketClient.js`, `frontend/src/services/socketClient.test.js`, `frontend/src/store/useBoardStore.js`, `frontend/src/App.jsx`, and `docs/DEVELOPMENT_PROGRESS.md`.
