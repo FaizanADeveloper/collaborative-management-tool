@@ -86,6 +86,18 @@ const syncDesiredRooms = async () => {
     const res = await emitWithAck('board:join', { boardId: targetBoard });
     if (res?.ok && desiredBoardId === targetBoard) {
       joinedBoardId = targetBoard;
+      if (Array.isArray(res.collaborators)) {
+        const handlers = eventHandlers.get('presence:state');
+        if (handlers) {
+          for (const handler of handlers) {
+            try {
+              handler({ boardId: targetBoard, collaborators: res.collaborators });
+            } catch {
+              // Ignore subscriber errors
+            }
+          }
+        }
+      }
     }
   }
 };

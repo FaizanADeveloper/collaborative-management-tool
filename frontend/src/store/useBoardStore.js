@@ -111,6 +111,7 @@ export const useBoardStore = create((set, get) => ({
   isLoadingBoardDetails: false,
   hasLoadedBoards: false,
   boardError: null,
+  activeCollaborators: [],
   filters: { ...defaultFilters },
 
   setFilter: (key, value) =>
@@ -130,6 +131,7 @@ export const useBoardStore = create((set, get) => ({
       activeBoard: null,
       lists: [],
       cardsByList: {},
+      activeCollaborators: [],
       hasLoadedBoards: false,
       boardError: null,
     });
@@ -259,12 +261,13 @@ export const useBoardStore = create((set, get) => ({
         activeBoard: null,
         lists: [],
         cardsByList: {},
+        activeCollaborators: [],
       });
       return;
     }
 
     writeSavedBoardId(boardId);
-    set({ activeBoardId: boardId });
+    set({ activeBoardId: boardId, activeCollaborators: [] });
     await get().fetchBoardDetails(boardId);
   },
 
@@ -862,6 +865,85 @@ export const useBoardStore = create((set, get) => ({
     });
   },
 
+  setCollaborators: (boardId, collaborators = []) => {
+    const incomingBoardId = boardId ? String(boardId) : null;
+    if (!incomingBoardId) return;
+
+    set((state) => {
+      if (!state.activeBoardId || state.activeBoardId !== incomingBoardId) {
+        return {};
+      }
+
+      const deduplicated = [];
+      const seenIds = new Set();
+      if (Array.isArray(collaborators)) {
+        for (const c of collaborators) {
+          const id = c?.id || c?._id;
+          if (id && !seenIds.has(String(id))) {
+            seenIds.add(String(id));
+            deduplicated.push({
+              id: String(id),
+              name: c.name || 'User',
+              avatar: c.avatar || '',
+              email: c.email || '',
+            });
+          }
+        }
+      }
+
+      return { activeCollaborators: deduplicated };
+    });
+  },
+
+  applySocketUserJoined: (payload) => {
+    const boardId = payload?.boardId ? String(payload.boardId) : null;
+    const user = payload?.user;
+    const id = user?.id || user?._id;
+    if (!boardId || !id) return;
+
+    set((state) => {
+      if (!state.activeBoardId || state.activeBoardId !== boardId) {
+        return {};
+      }
+
+      const strId = String(id);
+      const exists = state.activeCollaborators.some((c) => c.id === strId);
+      const updatedUser = {
+        id: strId,
+        name: user.name || 'User',
+        avatar: user.avatar || '',
+        email: user.email || '',
+      };
+
+      const next = exists
+        ? state.activeCollaborators.map((c) => (c.id === strId ? updatedUser : c))
+        : [...state.activeCollaborators, updatedUser];
+
+      return { activeCollaborators: next };
+    });
+  },
+
+  applySocketUserLeft: (payload) => {
+    const boardId = payload?.boardId ? String(payload.boardId) : null;
+    const userId = payload?.userId ? String(payload.userId) : null;
+    if (!boardId || !userId) return;
+
+    set((state) => {
+      if (!state.activeBoardId || state.activeBoardId !== boardId) {
+        return {};
+      }
+
+      const filtered = state.activeCollaborators.filter((c) => c.id !== userId);
+      if (filtered.length === state.activeCollaborators.length) {
+        return {};
+      }
+
+      return { activeCollaborators: filtered };
+    });
+  },
+
+  clearCollaborators: () => set({ activeCollaborators: [] }),
+
   resetBoardState: () => {
     pendingMoveCardIds.clear();
     recentlyDeletedCardIds.clear();
@@ -875,6 +957,7 @@ export const useBoardStore = create((set, get) => ({
       activeBoard: null,
       lists: [],
       cardsByList: {},
+      activeCollaborators: [],
       isLoadingBoards: false,
       isLoadingBoardDetails: false,
       hasLoadedBoards: false,

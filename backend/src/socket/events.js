@@ -1,6 +1,8 @@
 const mongoose = require('mongoose');
-const { getIO } = require('./index');
-const { getBoardRoom } = require('./rooms');
+const socketModule = require('./index');
+const getIO = () => (typeof socketModule.getIO === 'function' ? socketModule.getIO() : null);
+
+const getBoardRoom = (boardId) => `board:${boardId}`;
 
 const SOCKET_EVENTS = Object.freeze({
   CARD_CREATED: 'card:created',
@@ -10,6 +12,8 @@ const SOCKET_EVENTS = Object.freeze({
   LIST_CREATED: 'list:created',
   LIST_UPDATED: 'list:updated',
   LIST_DELETED: 'list:deleted',
+  PRESENCE_JOIN: 'presence:join',
+  PRESENCE_LEAVE: 'presence:leave',
 });
 
 const ALLOWED_BOARD_EVENTS = new Set(Object.values(SOCKET_EVENTS));
@@ -132,8 +136,8 @@ const sanitizeListPayload = (list) => {
  * @param {object} payload
  * @returns {boolean}
  */
-const emitBoardEvent = (boardId, eventName, payload) => {
-  const io = getIO();
+const emitBoardEvent = (boardId, eventName, payload, ioOverride = null) => {
+  const io = ioOverride || getIO();
   if (!io) return false;
 
   const resolvedBoardId = toIdString(boardId);
@@ -276,6 +280,48 @@ const emitListDeleted = ({ listId, boardId, actorId }) => {
   });
 };
 
+const emitPresenceJoin = (boardId, user, ioOverride = null) => {
+  const resolvedBoardId = toIdString(boardId);
+  const resolvedUser =
+    user && typeof user === 'object'
+      ? {
+          id: toIdString(user.id || user._id),
+          name:
+            typeof user.name === 'string' && user.name.trim()
+              ? user.name.trim()
+              : 'User',
+          avatar: typeof user.avatar === 'string' ? user.avatar.trim() : '',
+        }
+      : null;
+
+  if (!isValidObjectId(resolvedBoardId) || !resolvedUser || !isValidObjectId(resolvedUser.id)) {
+    return false;
+  }
+
+  return emitBoardEvent(
+    resolvedBoardId,
+    SOCKET_EVENTS.PRESENCE_JOIN,
+    { user: resolvedUser },
+    ioOverride
+  );
+};
+
+const emitPresenceLeave = (boardId, userId, ioOverride = null) => {
+  const resolvedBoardId = toIdString(boardId);
+  const resolvedUserId = toIdString(userId);
+
+  if (!isValidObjectId(resolvedBoardId) || !isValidObjectId(resolvedUserId)) {
+    return false;
+  }
+
+  return emitBoardEvent(
+    resolvedBoardId,
+    SOCKET_EVENTS.PRESENCE_LEAVE,
+    { userId: resolvedUserId },
+    ioOverride
+  );
+};
+
 module.exports = {
   SOCKET_EVENTS,
   sanitizeCardPayload,
@@ -288,4 +334,6 @@ module.exports = {
   emitListCreated,
   emitListUpdated,
   emitListDeleted,
+  emitPresenceJoin,
+  emitPresenceLeave,
 };

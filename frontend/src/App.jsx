@@ -128,6 +128,13 @@ const AppLayout = ({ children }) => {
       subscribeSocketEvent('list:created', boardActions.applySocketListCreated),
       subscribeSocketEvent('list:updated', boardActions.applySocketListUpdated),
       subscribeSocketEvent('list:deleted', boardActions.applySocketListDeleted),
+      subscribeSocketEvent('presence:join', boardActions.applySocketUserJoined),
+      subscribeSocketEvent('presence:leave', boardActions.applySocketUserLeft),
+      subscribeSocketEvent('presence:state', (payload) => {
+        if (payload?.boardId && Array.isArray(payload?.collaborators)) {
+          boardActions.setCollaborators(payload.boardId, payload.collaborators);
+        }
+      }),
     ];
 
     return () => {

@@ -1,6 +1,19 @@
 const mongoose = require('mongoose');
 const Board = require('../models/Board');
 const WorkspaceMember = require('../models/WorkspaceMember');
+const {
+  trackBoardJoin,
+  trackBoardLeave,
+  handleSocketDisconnect,
+} = require('./presence');
+
+let eventsModule = null;
+const getEvents = () => {
+  if (!eventsModule) {
+    eventsModule = require('./events');
+  }
+  return eventsModule;
+};
 
 const getUserRoom = (userId) => `user:${userId}`;
 const getWorkspaceRoom = (workspaceId) => `workspace:${workspaceId}`;
@@ -118,7 +131,7 @@ const sendAck = (callback, payload) => {
  * @param {import('socket.io').Server} _io
  * @param {import('socket.io').Socket} socket
  */
-const registerRoomHandlers = async (_io, socket) => {
+const registerRoomHandlers = async (io, socket) => {
   const userId = socket.data?.userId;
 
   socket.on('workspace:join', async (payload, callback) => {
@@ -196,12 +209,31 @@ const registerRoomHandlers = async (_io, socket) => {
       const room = getBoardRoom(auth.boardId);
       await socket.join(room);
 
+      const joinResult = trackBoardJoin(socket, auth.boardId);
+
+      if (
+        joinResult.previousLeave?.isLastSocketForUser &&
+        joinResult.previousLeave?.boardId &&
+        joinResult.previousLeave?.userId
+      ) {
+        getEvents().emitPresenceLeave(
+          joinResult.previousLeave.boardId,
+          joinResult.previousLeave.userId,
+          io
+        );
+      }
+
+      if (joinResult.isFirstSocketForUser && joinResult.user) {
+        getEvents().emitPresenceJoin(auth.boardId, joinResult.user, io);
+      }
+
       return sendAck(callback, {
         ok: true,
         boardId: auth.boardId,
         workspaceId: auth.workspaceId,
         room,
         role: auth.role,
+        collaborators: joinResult.collaborators,
       });
     } catch {
       return sendAck(callback, {
@@ -223,8 +255,17 @@ const registerRoomHandlers = async (_io, socket) => {
         });
       }
 
+      const leaveResult = trackBoardLeave(socket, boardId);
       const room = getBoardRoom(boardId);
       await socket.leave(room);
+
+      if (
+        leaveResult?.isLastSocketForUser &&
+        leaveResult?.userId &&
+        leaveResult?.boardId
+      ) {
+        getEvents().emitPresenceLeave(leaveResult.boardId, leaveResult.userId, io);
+      }
 
       return sendAck(callback, {
         ok: true,
@@ -237,6 +278,21 @@ const registerRoomHandlers = async (_io, socket) => {
         code: 'INTERNAL_ERROR',
         error: 'Unable to leave board room.',
       });
+    }
+  });
+
+  socket.on('disconnecting', () => {
+    try {
+      const leaveResult = handleSocketDisconnect(socket);
+      if (
+        leaveResult?.isLastSocketForUser &&
+        leaveResult?.userId &&
+        leaveResult?.boardId
+      ) {
+        getEvents().emitPresenceLeave(leaveResult.boardId, leaveResult.userId, io);
+      }
+    } catch {
+      // Prevent unhandled errors during disconnect
     }
   });
 

@@ -186,3 +186,23 @@ Tracks verified implementation milestones, testing, builds, and commit history f
 **Files added / updated:**
 - Added `backend/src/socket/events.js`, `backend/tests/boardSync.test.js`, and `frontend/src/store/boardRealtimeSync.test.js`.
 - Updated `backend/src/services/card.service.js`, `backend/src/services/list.service.js`, `frontend/src/services/socketClient.js`, `frontend/src/services/socketClient.test.js`, `frontend/src/store/useBoardStore.js`, `frontend/src/App.jsx`, and `docs/DEVELOPMENT_PROGRESS.md`.
+
+## Week 3 Phase 3C — Collaborative Experience
+
+**Completed:**
+- Implemented in-memory collaborative presence registry `backend/src/socket/presence.js` tracking active viewers per board (`boardPresence`) and connection tracking per socket (`socketTracking`), supporting multiple simultaneous socket connections per user (e.g. multiple tabs) without duplicate counts or premature offline broadcasts.
+- Integrated presence tracking into `backend/src/socket/rooms.js` (`board:join`, `board:leave`, and `disconnecting` lifecycle), providing authoritative initial collaborator lists in `board:join` acknowledgements, broadcasting `presence:join` when a user enters a board (0 -> 1 active sockets), and broadcasting `presence:leave` when a user departs a board (1 -> 0 active sockets) or disconnects unexpectedly.
+- Added `PRESENCE_JOIN` and `PRESENCE_LEAVE` event constants and room-targeted emitters (`emitPresenceJoin`, `emitPresenceLeave`) to `backend/src/socket/events.js` with strict payload sanitization (only `{ id, name, avatar }` exposed).
+- Extended `frontend/src/store/useBoardStore.js` with `activeCollaborators: []` state and actions (`setCollaborators`, `applySocketUserJoined`, `applySocketUserLeft`, `clearCollaborators`), enforcing active-board event filtering, user deduplication, and automatic presence cleanup on board change, workspace switch, and logout.
+- Updated `frontend/src/services/socketClient.js` to dispatch `presence:state` on `board:join` acknowledgement and `frontend/src/App.jsx` to register reconnect-safe `presence:join`, `presence:leave`, and `presence:state` subscriptions.
+- Created `frontend/src/components/kanban/BoardCollaborators.jsx` and embedded it directly into `frontend/src/components/kanban/KanbanBoard.jsx` Board Header: renders live emerald pulse indicator, active collaborator count badge, `AvatarGroup`, and accessible interactive popover listing currently active board viewers with "(You)" indicator for the current session.
+
+**Verification:**
+- Backend unit & presence tests (`npm.cmd --prefix backend test`): 12 suites, 198/198 tests passed (including `backend/tests/presence.test.js` covering initial snapshot, peer join/leave broadcasts, multiple tabs per user, unexpected disconnect cleanup, board switching, and cross-workspace isolation).
+- Frontend unit & presence tests (`npm.cmd --prefix frontend test`): 12 test files, 51/51 tests passed (including `frontend/src/store/boardPresence.test.js`).
+- Frontend production build (`npm.cmd --prefix frontend run build`): passed cleanly in 1.32s (`dist/assets/index-W1ntY3BJ.js 482.35 kB`).
+- Multi-user browser verification script prepared in scratch space (`verify-multiuser-phase3c.mjs`) covering all 5 collaborative scenarios.
+
+**Files added / updated:**
+- Added `backend/src/socket/presence.js`, `backend/tests/presence.test.js`, `frontend/src/components/kanban/BoardCollaborators.jsx`, and `frontend/src/store/boardPresence.test.js`.
+- Updated `backend/src/socket/events.js`, `backend/src/socket/index.js`, `backend/src/socket/rooms.js`, `backend/tests/socket.test.js`, `frontend/src/services/socketClient.js`, `frontend/src/store/useBoardStore.js`, `frontend/src/components/kanban/KanbanBoard.jsx`, `frontend/src/App.jsx`, and `docs/DEVELOPMENT_PROGRESS.md`.

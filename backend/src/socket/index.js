@@ -2,6 +2,7 @@ const { Server } = require('socket.io');
 const env = require('../config/env');
 const { socketAuthMiddleware } = require('./auth');
 const { registerRoomHandlers } = require('./rooms');
+const { clearPresence } = require('./presence');
 
 let ioInstance = null;
 
@@ -47,6 +48,7 @@ const getIO = () => ioInstance;
  * @returns {Promise<void>}
  */
 const closeSocketServer = async () => {
+  clearPresence();
   if (!ioInstance) return;
   const activeIO = ioInstance;
   ioInstance = null;

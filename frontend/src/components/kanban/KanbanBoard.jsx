@@ -2,6 +2,7 @@ import React, { useState, useMemo } from 'react';
 import { DragDropContext, Droppable } from '@hello-pangea/dnd';
 import { KanbanColumn } from './KanbanColumn';
 import { TaskFilters } from './TaskFilters';
+import { BoardCollaborators } from './BoardCollaborators';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import { useBoardStore } from '../../store/useBoardStore';
 import { useAuthStore } from '../../store/useAuthStore';
@@ -371,6 +372,7 @@ export const KanbanBoard = () => {
                 {lists.length} {lists.length === 1 ? 'list' : 'lists'} • {totalCards}{' '}
                 {totalCards === 1 ? 'card' : 'cards'}
               </span>
+              <BoardCollaborators />
             </div>
             {currentBoard.description && (
               <p className="text-xs sm:text-sm text-ink-secondary max-w-2xl">

@@ -270,13 +270,16 @@ describe('Phase 3A: Authenticated Socket.IO Foundation', () => {
     const joined = await emitWithAck(client, 'board:join', {
       boardId: mockBoardId.toString(),
     });
-    expect(joined).toEqual({
-      ok: true,
-      boardId: mockBoardId.toString(),
-      workspaceId: mockWorkspaceId.toString(),
-      room: `board:${mockBoardId.toString()}`,
-      role: 'member',
-    });
+    expect(joined).toEqual(
+      expect.objectContaining({
+        ok: true,
+        boardId: mockBoardId.toString(),
+        workspaceId: mockWorkspaceId.toString(),
+        room: `board:${mockBoardId.toString()}`,
+        role: 'member',
+        collaborators: expect.any(Array),
+      })
+    );
     expect(serverSocket.rooms.has(`board:${mockBoardId.toString()}`)).toBe(true);
 
     const left = await emitWithAck(client, 'board:leave', {
