@@ -2,6 +2,7 @@ import React, { useState, useEffect, useRef } from 'react';
 import { useBoardStore } from '../../store/useBoardStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
+import { emitCardTyping } from '../../services/socketClient';
 import { Avatar } from '../common/Avatar';
 import { Button } from '../common/Button';
 import { ConfirmDialog } from '../common/ConfirmDialog';
@@ -12,6 +13,21 @@ import {
   AlertCircle,
   Loader2,
 } from 'lucide-react';
+
+const EMPTY_TYPING_USERS = [];
+
+export const formatTypingIndicator = (collaborators = []) => {
+  if (!Array.isArray(collaborators) || collaborators.length === 0) {
+    return null;
+  }
+  if (collaborators.length === 1) {
+    return `${collaborators[0].name} is typing...`;
+  }
+  if (collaborators.length === 2) {
+    return `${collaborators[0].name} and ${collaborators[1].name} are typing...`;
+  }
+  return 'Several people are typing...';
+};
 
 export const formatRelativeTime = (timestamp) => {
   if (!timestamp) return '';
@@ -48,13 +64,43 @@ export const CardComments = ({ cardId }) => {
 
   const currentUser = useAuthStore((state) => state.user);
   const members = useWorkspaceStore((state) => state.members);
+  const activeBoardId = useBoardStore((state) => state.activeBoardId);
+  const typingUsers = useBoardStore(
+    (state) => state.typingByCard[cardId] || EMPTY_TYPING_USERS
+  );
 
+  const [, setTick] = useState(0);
   const [content, setContent] = useState('');
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [submitError, setSubmitError] = useState('');
   const [commentToDelete, setCommentToDelete] = useState(null);
   const [isDeleting, setIsDeleting] = useState(false);
   const textareaRef = useRef(null);
+
+  const isTypingRef = useRef(false);
+  const typingTimeoutRef = useRef(null);
+  const lastEmitTimeRef = useRef(0);
+
+  useEffect(() => {
+    if (typingUsers.length === 0) return undefined;
+    const interval = setInterval(() => setTick((t) => t + 1), 1000);
+    return () => clearInterval(interval);
+  }, [typingUsers]);
+
+  const activeTypers = typingUsers.filter(
+    (u) => Date.now() - (u.timestamp || 0) < 4000
+  );
+  const typingMessage = formatTypingIndicator(activeTypers);
+
+  useEffect(() => {
+    return () => {
+      clearTimeout(typingTimeoutRef.current);
+      if (isTypingRef.current && cardId && activeBoardId) {
+        emitCardTyping({ boardId: activeBoardId, cardId, isTyping: false });
+        isTypingRef.current = false;
+      }
+    };
+  }, [cardId, activeBoardId]);
 
   useEffect(() => {
     if (cardId) {
@@ -78,11 +124,38 @@ export const CardComments = ({ cardId }) => {
   };
 
   const handleTextareaChange = (e) => {
-    setContent(e.target.value);
+    const nextVal = e.target.value;
+    setContent(nextVal);
     setSubmitError('');
     if (textareaRef.current) {
       textareaRef.current.style.height = 'auto';
       textareaRef.current.style.height = `${Math.min(textareaRef.current.scrollHeight, 200)}px`;
+    }
+
+    if (cardId && activeBoardId) {
+      const trimmed = nextVal.trim();
+      if (!trimmed) {
+        if (isTypingRef.current) {
+          isTypingRef.current = false;
+          clearTimeout(typingTimeoutRef.current);
+          emitCardTyping({ boardId: activeBoardId, cardId, isTyping: false });
+        }
+      } else {
+        const now = Date.now();
+        if (!isTypingRef.current || now - lastEmitTimeRef.current > 2000) {
+          isTypingRef.current = true;
+          lastEmitTimeRef.current = now;
+          emitCardTyping({ boardId: activeBoardId, cardId, isTyping: true });
+        }
+
+        clearTimeout(typingTimeoutRef.current);
+        typingTimeoutRef.current = setTimeout(() => {
+          if (isTypingRef.current) {
+            isTypingRef.current = false;
+            emitCardTyping({ boardId: activeBoardId, cardId, isTyping: false });
+          }
+        }, 2500);
+      }
     }
   };
 
@@ -96,6 +169,12 @@ export const CardComments = ({ cardId }) => {
     if (trimmed.length > 2000) {
       setSubmitError('Comment cannot exceed 2000 characters');
       return;
+    }
+
+    clearTimeout(typingTimeoutRef.current);
+    if (isTypingRef.current && cardId && activeBoardId) {
+      isTypingRef.current = false;
+      emitCardTyping({ boardId: activeBoardId, cardId, isTyping: false });
     }
 
     setIsSubmitting(true);
@@ -153,6 +232,32 @@ export const CardComments = ({ cardId }) => {
         >
           <AlertCircle className="w-4 h-4 flex-shrink-0 mt-0.5" />
           <span>{commentsError}</span>
+        </div>
+      )}
+
+      {/* Real-Time Typing Indicator */}
+      {typingMessage && (
+        <div
+          role="status"
+          aria-live="polite"
+          data-testid="typing-indicator"
+          className="flex items-center gap-2 px-1 text-xs text-brand font-medium"
+        >
+          <span className="flex items-center gap-1" aria-hidden="true">
+            <span
+              className="w-1.5 h-1.5 rounded-full bg-brand animate-bounce"
+              style={{ animationDelay: '0ms' }}
+            />
+            <span
+              className="w-1.5 h-1.5 rounded-full bg-brand animate-bounce"
+              style={{ animationDelay: '150ms' }}
+            />
+            <span
+              className="w-1.5 h-1.5 rounded-full bg-brand animate-bounce"
+              style={{ animationDelay: '300ms' }}
+            />
+          </span>
+          <span>{typingMessage}</span>
         </div>
       )}
 

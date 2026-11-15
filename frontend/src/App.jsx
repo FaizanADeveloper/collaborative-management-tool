@@ -31,6 +31,7 @@ import {
   setActiveWorkspaceRoom,
   setActiveBoardRoom,
   subscribeSocketEvent,
+  subscribeSocketStatus,
 } from './services/socketClient';
 
 const HydrationLoader = () => (
@@ -130,11 +131,17 @@ const AppLayout = ({ children }) => {
       subscribeSocketEvent('list:deleted', boardActions.applySocketListDeleted),
       subscribeSocketEvent('comment:created', boardActions.applySocketCommentCreated),
       subscribeSocketEvent('comment:deleted', boardActions.applySocketCommentDeleted),
+      subscribeSocketEvent('card:typing', boardActions.applySocketCardTyping),
       subscribeSocketEvent('presence:join', boardActions.applySocketUserJoined),
       subscribeSocketEvent('presence:leave', boardActions.applySocketUserLeft),
       subscribeSocketEvent('presence:state', (payload) => {
         if (payload?.boardId && Array.isArray(payload?.collaborators)) {
           boardActions.setCollaborators(payload.boardId, payload.collaborators);
+        }
+      }),
+      subscribeSocketStatus((status) => {
+        if (status === 'disconnected') {
+          boardActions.clearAllTyping();
         }
       }),
     ];

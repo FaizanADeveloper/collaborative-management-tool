@@ -2,11 +2,12 @@ import React from 'react';
 import { describe, it, expect, vi, beforeEach } from 'vitest';
 import { render, screen, waitFor } from '@testing-library/react';
 import userEvent from '@testing-library/user-event';
-import { CardComments, formatRelativeTime } from './CardComments';
+import { CardComments, formatRelativeTime, formatTypingIndicator } from './CardComments';
 import { useAuthStore } from '../../store/useAuthStore';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import { useBoardStore } from '../../store/useBoardStore';
 import { commentService } from '../../services/commentService';
+import { emitCardTyping } from '../../services/socketClient';
 
 vi.mock('../../services/commentService', () => ({
   commentService: {
@@ -14,6 +15,10 @@ vi.mock('../../services/commentService', () => ({
     createComment: vi.fn(),
     deleteComment: vi.fn(),
   },
+}));
+
+vi.mock('../../services/socketClient', () => ({
+  emitCardTyping: vi.fn(),
 }));
 
 describe('CardComments Component', () => {
@@ -225,5 +230,91 @@ describe('CardComments Component', () => {
 
     // Bob is admin in workspace, so delete button IS rendered for moderation
     expect(screen.getByRole('button', { name: /delete comment/i })).toBeInTheDocument();
+  });
+
+  describe('formatTypingIndicator helper', () => {
+    it('returns null when no users are typing', () => {
+      expect(formatTypingIndicator([])).toBeNull();
+      expect(formatTypingIndicator(null)).toBeNull();
+    });
+
+    it('formats single collaborator typing message', () => {
+      expect(formatTypingIndicator([{ name: 'Ada Lovelace' }])).toBe('Ada Lovelace is typing...');
+    });
+
+    it('formats two collaborators typing message', () => {
+      expect(
+        formatTypingIndicator([{ name: 'Ada Lovelace' }, { name: 'Charles Babbage' }])
+      ).toBe('Ada Lovelace and Charles Babbage are typing...');
+    });
+
+    it('formats 3 or more collaborators as "Several people are typing..."', () => {
+      expect(
+        formatTypingIndicator([
+          { name: 'Ada' },
+          { name: 'Charles' },
+          { name: 'Grace' },
+        ])
+      ).toBe('Several people are typing...');
+    });
+  });
+
+  describe('Typing Indicator UI & Outgoing Events', () => {
+    it('renders typing indicator when other collaborators are typing on the active card', async () => {
+      useBoardStore.setState({
+        typingByCard: {
+          [mockCardId]: [
+            { id: 'u-2', name: 'Bob Admin', avatar: '', timestamp: Date.now() },
+          ],
+        },
+      });
+
+      render(<CardComments cardId={mockCardId} />);
+
+      await waitFor(() => {
+        expect(screen.getByTestId('typing-indicator')).toBeInTheDocument();
+        expect(screen.getByText('Bob Admin is typing...')).toBeInTheDocument();
+      });
+    });
+
+    it('emits card:typing with isTyping: true when user types in composer', async () => {
+      const user = userEvent.setup();
+      render(<CardComments cardId={mockCardId} />);
+
+      const textarea = screen.getByLabelText(/write a comment/i);
+      await user.type(textarea, 'Hello team');
+
+      expect(emitCardTyping).toHaveBeenCalledWith({
+        boardId: 'board-1',
+        cardId: mockCardId,
+        isTyping: true,
+      });
+    });
+
+    it('emits card:typing with isTyping: false when comment is submitted', async () => {
+      const user = userEvent.setup();
+      commentService.createComment.mockResolvedValueOnce({
+        id: 'new-c',
+        content: 'Done typing',
+        card: mockCardId,
+        board: 'board-1',
+        author: { id: 'u-1', name: 'Alice Author' },
+      });
+
+      render(<CardComments cardId={mockCardId} />);
+
+      const textarea = screen.getByLabelText(/write a comment/i);
+      await user.type(textarea, 'Done typing');
+      emitCardTyping.mockClear();
+
+      const submitButton = screen.getByRole('button', { name: /^comment$/i });
+      await user.click(submitButton);
+
+      expect(emitCardTyping).toHaveBeenCalledWith({
+        boardId: 'board-1',
+        cardId: mockCardId,
+        isTyping: false,
+      });
+    });
   });
 });

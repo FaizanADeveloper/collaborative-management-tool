@@ -222,6 +222,34 @@ const handleSocketDisconnect = (socket) => {
 };
 
 /**
+ * Checks whether any socket belonging to this user (other than excludeSocketId)
+ * is currently typing on the specified board and card.
+ *
+ * @param {string} boardId
+ * @param {string} cardId
+ * @param {string} userId
+ * @param {string} [excludeSocketId]
+ * @param {import('socket.io').Server} [io]
+ * @returns {boolean}
+ */
+const isUserTypingOnBoardCard = (boardId, cardId, userId, excludeSocketId, io) => {
+  if (!boardId || !cardId || !userId || !io) return false;
+  const userMap = boardPresence.get(String(boardId));
+  const record = userMap?.get(String(userId));
+  if (!record || !record.socketIds || record.socketIds.size === 0) return false;
+
+  const typingKey = `${boardId}:${cardId}`;
+  for (const sId of record.socketIds) {
+    if (sId === excludeSocketId) continue;
+    const peerSocket = io.sockets?.sockets?.get(sId);
+    if (peerSocket?._activeTyping?.has(typingKey)) {
+      return true;
+    }
+  }
+  return false;
+};
+
+/**
  * Clears all active presence and socket tracking state (for testing and shutdown).
  */
 const clearPresence = () => {
@@ -235,5 +263,6 @@ module.exports = {
   trackBoardJoin,
   trackBoardLeave,
   handleSocketDisconnect,
+  isUserTypingOnBoardCard,
   clearPresence,
 };

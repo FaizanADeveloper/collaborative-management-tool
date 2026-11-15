@@ -3,7 +3,7 @@ import { boardService } from '../services/boardService';
 import { listService } from '../services/listService';
 import { cardService } from '../services/cardService';
 import { commentService } from '../services/commentService';
-import { registerLogoutCleanup } from './useAuthStore';
+import { useAuthStore, registerLogoutCleanup } from './useAuthStore';
 import { useWorkspaceStore } from './useWorkspaceStore';
 import {
   sortByPosition,
@@ -120,6 +120,7 @@ export const useBoardStore = create((set, get) => ({
   activeCommentCardId: null,
   isLoadingComments: false,
   commentsError: null,
+  typingByCard: {},
 
   setFilter: (key, value) =>
     set((state) => ({
@@ -144,6 +145,7 @@ export const useBoardStore = create((set, get) => ({
       activeCommentCardId: null,
       isLoadingComments: false,
       commentsError: null,
+      typingByCard: {},
       hasLoadedBoards: false,
       boardError: null,
     });
@@ -1075,6 +1077,84 @@ export const useBoardStore = create((set, get) => ({
     });
   },
 
+  applySocketCardTyping: (payload) => {
+    const boardId = payload?.boardId;
+    const cardId = payload?.cardId;
+    const isTyping = Boolean(payload?.isTyping);
+    const incomingUser = payload?.user;
+
+    if (!cardId || !incomingUser?.id) return;
+
+    const activeBoardId = get().activeBoardId;
+    if (!activeBoardId || (boardId && boardId !== activeBoardId)) return;
+
+    const currentUserId =
+      useAuthStore.getState().user?.id || useAuthStore.getState().user?._id;
+    if (currentUserId && String(incomingUser.id) === String(currentUserId)) return;
+
+    set((state) => {
+      const currentList = state.typingByCard[cardId] || [];
+      const userId = String(incomingUser.id);
+
+      if (isTyping) {
+        const nextUser = {
+          id: userId,
+          name:
+            typeof incomingUser.name === 'string' && incomingUser.name.trim()
+              ? incomingUser.name.trim()
+              : 'User',
+          avatar:
+            typeof incomingUser.avatar === 'string' ? incomingUser.avatar.trim() : '',
+          timestamp: Date.now(),
+        };
+
+        const existingIndex = currentList.findIndex((u) => u.id === userId);
+        const updatedList =
+          existingIndex >= 0
+            ? currentList.map((u, i) => (i === existingIndex ? nextUser : u))
+            : [...currentList, nextUser];
+
+        return {
+          typingByCard: {
+            ...state.typingByCard,
+            [cardId]: updatedList,
+          },
+        };
+      } else {
+        const filtered = currentList.filter((u) => u.id !== userId);
+        if (filtered.length === currentList.length) return {};
+
+        return {
+          typingByCard: {
+            ...state.typingByCard,
+            [cardId]: filtered,
+          },
+        };
+      }
+    });
+  },
+
+  clearCardTyping: (cardId) => {
+    if (!cardId) return;
+    set((state) => {
+      if (!state.typingByCard[cardId] || state.typingByCard[cardId].length === 0) return {};
+      const next = { ...state.typingByCard };
+      delete next[cardId];
+      return { typingByCard: next };
+    });
+  },
+
+  clearAllTyping: () => {
+    set({ typingByCard: {} });
+  },
+
+  getTypingCollaborators: (cardId) => {
+    if (!cardId) return [];
+    const list = get().typingByCard[cardId] || [];
+    const now = Date.now();
+    return list.filter((u) => now - (u.timestamp || 0) < 4000);
+  },
+
   resetBoardState: () => {
     pendingMoveCardIds.clear();
     recentlyDeletedCardIds.clear();
@@ -1094,6 +1174,7 @@ export const useBoardStore = create((set, get) => ({
       activeCommentCardId: null,
       isLoadingComments: false,
       commentsError: null,
+      typingByCard: {},
       isLoadingBoards: false,
       isLoadingBoardDetails: false,
       hasLoadedBoards: false,

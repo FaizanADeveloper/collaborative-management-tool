@@ -1,10 +1,13 @@
 const mongoose = require('mongoose');
 const Board = require('../models/Board');
+const Card = require('../models/Card');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const {
   trackBoardJoin,
   trackBoardLeave,
   handleSocketDisconnect,
+  sanitizePresenceUser,
+  isUserTypingOnBoardCard,
 } = require('./presence');
 
 let eventsModule = null;
@@ -259,6 +262,25 @@ const registerRoomHandlers = async (io, socket) => {
       const room = getBoardRoom(boardId);
       await socket.leave(room);
 
+      // Clean up any active typing for this socket on the departing board
+      if (socket._activeTyping) {
+        for (const [key, record] of socket._activeTyping.entries()) {
+          if (record.boardId === boardId) {
+            if (record.timer) clearTimeout(record.timer);
+            socket._activeTyping.delete(key);
+            if (!isUserTypingOnBoardCard(record.boardId, record.cardId, record.user.id, socket.id, io)) {
+              getEvents().emitCardTyping({
+                boardId: record.boardId,
+                cardId: record.cardId,
+                isTyping: false,
+                user: record.user,
+                ioOverride: io,
+              });
+            }
+          }
+        }
+      }
+
       if (
         leaveResult?.isLastSocketForUser &&
         leaveResult?.userId &&
@@ -281,8 +303,150 @@ const registerRoomHandlers = async (io, socket) => {
     }
   });
 
+  socket.on('card:typing', async (payload, callback) => {
+    try {
+      const boardId = parseResourceId(payload, 'boardId');
+      const cardId = parseResourceId(payload, 'cardId');
+      const isTyping = Boolean(payload?.isTyping);
+
+      if (!boardId || !mongoose.isObjectIdOrHexString(boardId)) {
+        return sendAck(callback, {
+          ok: false,
+          code: 'INVALID_ID',
+          error: 'Invalid board identifier.',
+        });
+      }
+
+      if (!cardId || !mongoose.isObjectIdOrHexString(cardId)) {
+        return sendAck(callback, {
+          ok: false,
+          code: 'INVALID_ID',
+          error: 'Invalid card identifier.',
+        });
+      }
+
+      if (!userId) {
+        return sendAck(callback, {
+          ok: false,
+          code: 'UNAUTHORIZED',
+          error: 'Authentication required.',
+        });
+      }
+
+      const boardRoom = getBoardRoom(boardId);
+      if (!socket.rooms.has(boardRoom)) {
+        return sendAck(callback, {
+          ok: false,
+          code: 'FORBIDDEN',
+          error: 'Socket must join the board room before sending typing events.',
+        });
+      }
+
+      const auth = await authorizeBoardAccess(boardId, userId);
+      if (!auth.allowed) {
+        return sendAck(callback, {
+          ok: false,
+          code: auth.code,
+          error: auth.message,
+        });
+      }
+
+      const card = await Card.findById(cardId).select('board').lean();
+      if (!card || String(card.board) !== String(boardId)) {
+        return sendAck(callback, {
+          ok: false,
+          code: 'FORBIDDEN',
+          error: 'Card does not belong to the specified board.',
+        });
+      }
+
+      const user = sanitizePresenceUser(socket.data?.user);
+      if (!user || !user.id) {
+        return sendAck(callback, {
+          ok: false,
+          code: 'UNAUTHORIZED',
+          error: 'Invalid user session.',
+        });
+      }
+
+      if (!socket._activeTyping) {
+        socket._activeTyping = new Map();
+      }
+
+      const typingKey = `${boardId}:${cardId}`;
+      const existing = socket._activeTyping.get(typingKey);
+      if (existing?.timer) {
+        clearTimeout(existing.timer);
+      }
+
+      if (isTyping) {
+        // Safety timeout to auto-clear typing if client stops unexpectedly
+        const timer = setTimeout(() => {
+          const current = socket._activeTyping?.get(typingKey);
+          if (current && current.timer === timer) {
+            socket._activeTyping.delete(typingKey);
+            if (!isUserTypingOnBoardCard(boardId, cardId, user.id, socket.id, io)) {
+              getEvents().emitCardTyping({
+                boardId,
+                cardId,
+                isTyping: false,
+                user,
+                ioOverride: io,
+              });
+            }
+          }
+        }, 5000);
+
+        socket._activeTyping.set(typingKey, { boardId, cardId, timer, user });
+
+        getEvents().emitCardTyping({
+          boardId,
+          cardId,
+          isTyping: true,
+          user,
+          socket,
+        });
+      } else {
+        socket._activeTyping.delete(typingKey);
+        if (!isUserTypingOnBoardCard(boardId, cardId, user.id, socket.id, io)) {
+          getEvents().emitCardTyping({
+            boardId,
+            cardId,
+            isTyping: false,
+            user,
+            socket,
+          });
+        }
+      }
+
+      return sendAck(callback, { ok: true, boardId, cardId, isTyping });
+    } catch {
+      return sendAck(callback, {
+        ok: false,
+        code: 'INTERNAL_ERROR',
+        error: 'Unable to process typing event.',
+      });
+    }
+  });
+
   socket.on('disconnecting', () => {
     try {
+      if (socket._activeTyping) {
+        for (const record of socket._activeTyping.values()) {
+          if (record.timer) clearTimeout(record.timer);
+          if (!isUserTypingOnBoardCard(record.boardId, record.cardId, record.user.id, socket.id, io)) {
+            getEvents().emitCardTyping({
+              boardId: record.boardId,
+              cardId: record.cardId,
+              isTyping: false,
+              user: record.user,
+              ioOverride: io,
+            });
+          }
+        }
+        socket._activeTyping.clear();
+      }
+
       const leaveResult = handleSocketDisconnect(socket);
       if (
         leaveResult?.isLastSocketForUser &&

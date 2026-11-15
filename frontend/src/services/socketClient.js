@@ -198,6 +198,20 @@ export const setActiveBoardRoom = (boardId) => {
   syncDesiredRooms();
 };
 
+/**
+ * Emits ephemeral card typing state to the active board room.
+ *
+ * @param {{ boardId: string, cardId: string, isTyping: boolean }} params
+ */
+export const emitCardTyping = ({ boardId, cardId, isTyping }) => {
+  if (!socket || !socket.connected || !boardId || !cardId) return;
+  socket.emit('card:typing', {
+    boardId,
+    cardId,
+    isTyping: Boolean(isTyping),
+  });
+};
+
 export const getSocket = () => socket;
 
 export const getSocketStatus = () => connectionStatus;

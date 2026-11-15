@@ -16,6 +16,7 @@ const SOCKET_EVENTS = Object.freeze({
   PRESENCE_LEAVE: 'presence:leave',
   COMMENT_CREATED: 'comment:created',
   COMMENT_DELETED: 'comment:deleted',
+  CARD_TYPING: 'card:typing',
 });
 
 const ALLOWED_BOARD_EVENTS = new Set(Object.values(SOCKET_EVENTS));
@@ -410,6 +411,60 @@ const emitCommentDeleted = ({ commentId, cardId, boardId, actorId }) => {
   });
 };
 
+const emitCardTyping = ({
+  boardId,
+  cardId,
+  isTyping,
+  user,
+  socket = null,
+  ioOverride = null,
+}) => {
+  const resolvedBoardId = toIdString(boardId);
+  const resolvedCardId = toIdString(cardId);
+  const resolvedUser =
+    user && typeof user === 'object'
+      ? {
+          id: toIdString(user.id || user._id),
+          name:
+            typeof user.name === 'string' && user.name.trim()
+              ? user.name.trim()
+              : 'User',
+          avatar: typeof user.avatar === 'string' ? user.avatar.trim() : '',
+        }
+      : null;
+
+  if (
+    !isValidObjectId(resolvedBoardId) ||
+    !isValidObjectId(resolvedCardId) ||
+    !resolvedUser ||
+    !isValidObjectId(resolvedUser.id)
+  ) {
+    return false;
+  }
+
+  const room = getBoardRoom(resolvedBoardId);
+  const payload = {
+    boardId: resolvedBoardId,
+    cardId: resolvedCardId,
+    isTyping: Boolean(isTyping),
+    user: resolvedUser,
+    timestamp: new Date().toISOString(),
+  };
+
+  try {
+    if (socket && typeof socket.to === 'function') {
+      socket.to(room).emit(SOCKET_EVENTS.CARD_TYPING, payload);
+    } else {
+      const io = ioOverride || getIO();
+      if (!io) return false;
+      io.to(room).emit(SOCKET_EVENTS.CARD_TYPING, payload);
+    }
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 module.exports = {
   SOCKET_EVENTS,
   sanitizeCardPayload,
@@ -427,4 +482,5 @@ module.exports = {
   emitPresenceLeave,
   emitCommentCreated,
   emitCommentDeleted,
+  emitCardTyping,
 };
