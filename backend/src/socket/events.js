@@ -14,6 +14,8 @@ const SOCKET_EVENTS = Object.freeze({
   LIST_DELETED: 'list:deleted',
   PRESENCE_JOIN: 'presence:join',
   PRESENCE_LEAVE: 'presence:leave',
+  COMMENT_CREATED: 'comment:created',
+  COMMENT_DELETED: 'comment:deleted',
 });
 
 const ALLOWED_BOARD_EVENTS = new Set(Object.values(SOCKET_EVENTS));
@@ -123,6 +125,56 @@ const sanitizeListPayload = (list) => {
     name: serialized.name || '',
     board,
     position: Number(serialized.position) || 0,
+    createdAt: serialized.createdAt || null,
+    updatedAt: serialized.updatedAt || null,
+  };
+};
+
+/**
+ * Strips internal Mongoose metadata from comment objects.
+ * Sanitizes author to { id, name, avatar } and excludes sensitive fields like email and password.
+ *
+ * @param {object} comment
+ * @returns {object|null}
+ */
+const sanitizeCommentPayload = (comment) => {
+  if (!comment || typeof comment !== 'object') return null;
+  const serialized = typeof comment.toJSON === 'function' ? comment.toJSON() : comment;
+  const id = toIdString(serialized.id || serialized._id);
+  const card = toIdString(serialized.card);
+  const board = toIdString(serialized.board);
+  const workspace = toIdString(serialized.workspace);
+
+  if (!id || !card || !board) return null;
+
+  let author = null;
+  if (serialized.author && typeof serialized.author === 'object') {
+    const authorId = toIdString(serialized.author.id || serialized.author._id);
+    if (authorId) {
+      author = {
+        id: authorId,
+        name:
+          typeof serialized.author.name === 'string' && serialized.author.name.trim()
+            ? serialized.author.name.trim()
+            : 'User',
+        avatar:
+          typeof serialized.author.avatar === 'string' ? serialized.author.avatar.trim() : '',
+      };
+    }
+  } else if (serialized.author) {
+    const authorId = toIdString(serialized.author);
+    if (authorId) {
+      author = { id: authorId, name: 'User', avatar: '' };
+    }
+  }
+
+  return {
+    id,
+    card,
+    board,
+    workspace: workspace || null,
+    content: typeof serialized.content === 'string' ? serialized.content : '',
+    author,
     createdAt: serialized.createdAt || null,
     updatedAt: serialized.updatedAt || null,
   };
@@ -322,10 +374,47 @@ const emitPresenceLeave = (boardId, userId, ioOverride = null) => {
   );
 };
 
+const emitCommentCreated = ({ comment, actorId }) => {
+  const sanitizedComment = sanitizeCommentPayload(comment);
+  const resolvedActorId = toIdString(actorId);
+  if (!sanitizedComment || (resolvedActorId && !isValidObjectId(resolvedActorId))) {
+    return false;
+  }
+
+  return emitBoardEvent(sanitizedComment.board, SOCKET_EVENTS.COMMENT_CREATED, {
+    cardId: sanitizedComment.card,
+    comment: sanitizedComment,
+    actorId: resolvedActorId,
+  });
+};
+
+const emitCommentDeleted = ({ commentId, cardId, boardId, actorId }) => {
+  const resolvedCommentId = toIdString(commentId);
+  const resolvedCardId = toIdString(cardId);
+  const resolvedBoardId = toIdString(boardId);
+  const resolvedActorId = toIdString(actorId);
+
+  if (
+    !isValidObjectId(resolvedCommentId) ||
+    !isValidObjectId(resolvedCardId) ||
+    !isValidObjectId(resolvedBoardId) ||
+    (resolvedActorId && !isValidObjectId(resolvedActorId))
+  ) {
+    return false;
+  }
+
+  return emitBoardEvent(resolvedBoardId, SOCKET_EVENTS.COMMENT_DELETED, {
+    cardId: resolvedCardId,
+    commentId: resolvedCommentId,
+    actorId: resolvedActorId,
+  });
+};
+
 module.exports = {
   SOCKET_EVENTS,
   sanitizeCardPayload,
   sanitizeListPayload,
+  sanitizeCommentPayload,
   emitBoardEvent,
   emitCardCreated,
   emitCardUpdated,
@@ -336,4 +425,6 @@ module.exports = {
   emitListDeleted,
   emitPresenceJoin,
   emitPresenceLeave,
+  emitCommentCreated,
+  emitCommentDeleted,
 };

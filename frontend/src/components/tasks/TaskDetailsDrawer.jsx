@@ -6,6 +6,7 @@ import { Avatar } from '../common/Avatar';
 import { Button } from '../common/Button';
 import { PriorityBadge } from '../common/Badge';
 import { ConfirmDialog } from '../common/ConfirmDialog';
+import { CardComments } from './CardComments';
 import {
   X,
   Calendar,
@@ -242,8 +243,9 @@ export const TaskDetailsDrawer = () => {
             </div>
           </div>
 
-          {/* Scrollable Form Body */}
-          <form onSubmit={handleSaveDetails} className="flex-1 overflow-y-auto p-6 space-y-5">
+          {/* Scrollable Drawer Body */}
+          <div className="flex-1 overflow-y-auto p-6 space-y-6">
+            <form onSubmit={handleSaveDetails} className="space-y-5">
             {saveError && (
               <div
                 role="alert"
@@ -471,6 +473,11 @@ export const TaskDetailsDrawer = () => {
               </div>
             </div>
           </form>
+
+          <div className="pt-6 border-t border-line">
+            <CardComments cardId={card.id} />
+          </div>
+        </div>
         </div>
       </div>
 

@@ -128,6 +128,8 @@ const AppLayout = ({ children }) => {
       subscribeSocketEvent('list:created', boardActions.applySocketListCreated),
       subscribeSocketEvent('list:updated', boardActions.applySocketListUpdated),
       subscribeSocketEvent('list:deleted', boardActions.applySocketListDeleted),
+      subscribeSocketEvent('comment:created', boardActions.applySocketCommentCreated),
+      subscribeSocketEvent('comment:deleted', boardActions.applySocketCommentDeleted),
       subscribeSocketEvent('presence:join', boardActions.applySocketUserJoined),
       subscribeSocketEvent('presence:leave', boardActions.applySocketUserLeft),
       subscribeSocketEvent('presence:state', (payload) => {

@@ -3,6 +3,7 @@ const Card = require('../models/Card');
 const Board = require('../models/Board');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const ApiError = require('../utils/ApiError');
+const { emitCommentCreated, emitCommentDeleted } = require('../socket/events');
 
 /**
  * Retrieve all comments for a specific card in chronological order
@@ -75,6 +76,7 @@ const createComment = async (cardId, data, userId) => {
   await comment.populate('author', 'name avatar');
 
   const serialized = comment.toJSON ? comment.toJSON() : comment;
+  emitCommentCreated({ comment: serialized, actorId: userId });
   return serialized;
 };
 
@@ -124,7 +126,14 @@ const deleteComment = async (cardId, commentId, userId) => {
     );
   }
 
+  const deleteMeta = {
+    commentId: comment._id ? comment._id.toString() : String(commentId),
+    cardId: comment.card ? comment.card.toString() : String(cardId),
+    boardId: comment.board ? comment.board.toString() : String(board._id),
+  };
+
   await Comment.findByIdAndDelete(commentId);
+  emitCommentDeleted({ ...deleteMeta, actorId: userId });
   return null;
 };
 

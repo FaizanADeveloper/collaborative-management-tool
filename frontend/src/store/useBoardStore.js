@@ -2,6 +2,7 @@ import { create } from 'zustand';
 import { boardService } from '../services/boardService';
 import { listService } from '../services/listService';
 import { cardService } from '../services/cardService';
+import { commentService } from '../services/commentService';
 import { registerLogoutCleanup } from './useAuthStore';
 import { useWorkspaceStore } from './useWorkspaceStore';
 import {
@@ -34,6 +35,7 @@ const writeSavedBoardId = (id) => {
 
 let boardsRequestCounter = 0;
 let detailsRequestCounter = 0;
+let commentsRequestCounter = 0;
 
 const defaultFilters = {
   search: '',
@@ -114,6 +116,11 @@ export const useBoardStore = create((set, get) => ({
   activeCollaborators: [],
   filters: { ...defaultFilters },
 
+  comments: [],
+  activeCommentCardId: null,
+  isLoadingComments: false,
+  commentsError: null,
+
   setFilter: (key, value) =>
     set((state) => ({
       filters: { ...state.filters, [key]: value },
@@ -124,6 +131,7 @@ export const useBoardStore = create((set, get) => ({
   clearForWorkspaceChange: () => {
     boardsRequestCounter += 1;
     detailsRequestCounter += 1;
+    commentsRequestCounter += 1;
     set({
       boards: [],
       boardsWorkspaceId: null,
@@ -132,6 +140,10 @@ export const useBoardStore = create((set, get) => ({
       lists: [],
       cardsByList: {},
       activeCollaborators: [],
+      comments: [],
+      activeCommentCardId: null,
+      isLoadingComments: false,
+      commentsError: null,
       hasLoadedBoards: false,
       boardError: null,
     });
@@ -254,6 +266,7 @@ export const useBoardStore = create((set, get) => ({
   },
 
   setActiveBoardId: async (boardId) => {
+    commentsRequestCounter += 1;
     if (!boardId) {
       writeSavedBoardId(null);
       set({
@@ -262,12 +275,23 @@ export const useBoardStore = create((set, get) => ({
         lists: [],
         cardsByList: {},
         activeCollaborators: [],
+        comments: [],
+        activeCommentCardId: null,
+        isLoadingComments: false,
+        commentsError: null,
       });
       return;
     }
 
     writeSavedBoardId(boardId);
-    set({ activeBoardId: boardId, activeCollaborators: [] });
+    set({
+      activeBoardId: boardId,
+      activeCollaborators: [],
+      comments: [],
+      activeCommentCardId: null,
+      isLoadingComments: false,
+      commentsError: null,
+    });
     await get().fetchBoardDetails(boardId);
   },
 
@@ -944,11 +968,119 @@ export const useBoardStore = create((set, get) => ({
 
   clearCollaborators: () => set({ activeCollaborators: [] }),
 
+  fetchComments: async (cardId) => {
+    if (!cardId) {
+      set({ comments: [], activeCommentCardId: null, isLoadingComments: false, commentsError: null });
+      return [];
+    }
+
+    const requestId = ++commentsRequestCounter;
+    set({ activeCommentCardId: cardId, isLoadingComments: true, commentsError: null });
+
+    try {
+      const comments = await commentService.listComments(cardId);
+      if (requestId !== commentsRequestCounter || get().activeCommentCardId !== cardId) {
+        return [];
+      }
+      set({ comments, isLoadingComments: false, commentsError: null });
+      return comments;
+    } catch (err) {
+      if (requestId !== commentsRequestCounter || get().activeCommentCardId !== cardId) {
+        return [];
+      }
+      set({
+        isLoadingComments: false,
+        commentsError: err?.message || 'Failed to load comments',
+      });
+      return [];
+    }
+  },
+
+  createComment: async (cardId, content) => {
+    const trimmed = typeof content === 'string' ? content.trim() : '';
+    if (!cardId || !trimmed) return { success: false, error: 'Comment content is required' };
+
+    try {
+      const comment = await commentService.createComment(cardId, { content: trimmed });
+      if (comment) {
+        set((state) => {
+          if (state.activeCommentCardId !== cardId) return {};
+          const exists = state.comments.some((c) => c.id === comment.id);
+          if (exists) return {};
+          return { comments: [...state.comments, comment] };
+        });
+      }
+      return { success: true, comment };
+    } catch (err) {
+      return { success: false, error: err?.message || 'Failed to create comment' };
+    }
+  },
+
+  deleteComment: async (cardId, commentId) => {
+    if (!cardId || !commentId) return { success: false, error: 'Card ID and comment ID are required' };
+
+    try {
+      await commentService.deleteComment(cardId, commentId);
+      set((state) => {
+        if (state.activeCommentCardId !== cardId) return {};
+        return { comments: state.comments.filter((c) => c.id !== commentId) };
+      });
+      return { success: true };
+    } catch (err) {
+      return { success: false, error: err?.message || 'Failed to delete comment' };
+    }
+  },
+
+  applySocketCommentCreated: (payload) => {
+    const incoming = payload?.comment;
+    const cardId = payload?.cardId || incoming?.card;
+    const boardId = payload?.boardId || incoming?.board;
+    if (!incoming?.id || !cardId) return;
+
+    set((state) => {
+      if (!state.activeBoardId || (boardId && boardId !== state.activeBoardId)) return {};
+      if (state.activeCommentCardId !== cardId) return {};
+
+      const exists = state.comments.some((c) => c.id === incoming.id);
+      if (exists) return {};
+
+      return { comments: [...state.comments, incoming] };
+    });
+  },
+
+  applySocketCommentDeleted: (payload) => {
+    const commentId = payload?.commentId;
+    const cardId = payload?.cardId;
+    const boardId = payload?.boardId;
+    if (!commentId || !cardId) return;
+
+    set((state) => {
+      if (!state.activeBoardId || (boardId && boardId !== state.activeBoardId)) return {};
+      if (state.activeCommentCardId !== cardId) return {};
+
+      const filtered = state.comments.filter((c) => c.id !== commentId);
+      if (filtered.length === state.comments.length) return {};
+
+      return { comments: filtered };
+    });
+  },
+
+  clearComments: () => {
+    commentsRequestCounter += 1;
+    set({
+      comments: [],
+      activeCommentCardId: null,
+      isLoadingComments: false,
+      commentsError: null,
+    });
+  },
+
   resetBoardState: () => {
     pendingMoveCardIds.clear();
     recentlyDeletedCardIds.clear();
     boardsRequestCounter += 1;
     detailsRequestCounter += 1;
+    commentsRequestCounter += 1;
     writeSavedBoardId(null);
     set({
       boards: [],
@@ -958,6 +1090,10 @@ export const useBoardStore = create((set, get) => ({
       lists: [],
       cardsByList: {},
       activeCollaborators: [],
+      comments: [],
+      activeCommentCardId: null,
+      isLoadingComments: false,
+      commentsError: null,
       isLoadingBoards: false,
       isLoadingBoardDetails: false,
       hasLoadedBoards: false,
