@@ -6,6 +6,7 @@ const User = require('../src/models/User');
 const Board = require('../src/models/Board');
 const List = require('../src/models/List');
 const Card = require('../src/models/Card');
+const Comment = require('../src/models/Comment');
 const WorkspaceMember = require('../src/models/WorkspaceMember');
 const { generateToken } = require('../src/utils/token');
 const { initSocketServer, closeSocketServer } = require('../src/socket');
@@ -183,6 +184,7 @@ describe('Phase 3B: Backend Real-Time Kanban Board Broadcasting', () => {
     });
     jest.spyOn(Card, 'create').mockResolvedValue(mockCardDoc);
     jest.spyOn(Card, 'findById').mockResolvedValue(mockCardDoc);
+    jest.spyOn(Comment, 'deleteMany').mockResolvedValue({ deletedCount: 0 });
     jest.spyOn(Card, 'findByIdAndDelete').mockResolvedValue(mockCardDoc);
 
     // 1. Create

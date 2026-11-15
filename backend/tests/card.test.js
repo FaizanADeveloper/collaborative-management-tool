@@ -7,6 +7,7 @@ const WorkspaceMember = require('../src/models/WorkspaceMember');
 const Board = require('../src/models/Board');
 const List = require('../src/models/List');
 const Card = require('../src/models/Card');
+const Comment = require('../src/models/Comment');
 const { generateToken } = require('../src/utils/token');
 
 describe('Week 2: Card Model and CRUD Foundation', () => {
@@ -527,6 +528,7 @@ describe('Week 2: Card Model and CRUD Foundation', () => {
       jest.spyOn(Card, 'findById').mockResolvedValue(mockCardDoc);
       jest.spyOn(Board, 'findById').mockResolvedValue(mockBoardDoc);
       jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+      jest.spyOn(Comment, 'deleteMany').mockResolvedValue({ deletedCount: 0 });
       jest.spyOn(Card, 'findByIdAndDelete').mockResolvedValue(mockCardDoc);
 
       const res = await request(app)
@@ -535,6 +537,7 @@ describe('Week 2: Card Model and CRUD Foundation', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+      expect(Comment.deleteMany).toHaveBeenCalledWith({ card: targetCardId.toString() });
       expect(Card.findByIdAndDelete).toHaveBeenCalledWith(targetCardId.toString());
     });
   });

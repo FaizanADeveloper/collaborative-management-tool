@@ -2,6 +2,7 @@ const Board = require('../models/Board');
 const Workspace = require('../models/Workspace');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const List = require('../models/List');
+const Comment = require('../models/Comment');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -162,13 +163,16 @@ const deleteBoard = async (boardId, userId) => {
     throw ApiError.forbidden('Access denied. Only workspace owners, admins, or the board creator can delete this board.');
   }
 
-  // Cascade delete child lists
-  await List.deleteMany({ board: boardId });
+  // Cascade delete child comments
+  await Comment.deleteMany({ board: boardId });
 
   // Cascade delete child cards if Card model is registered
   if (Board.db && Board.db.models && Board.db.models.Card) {
     await Board.db.models.Card.deleteMany({ board: boardId });
   }
+
+  // Cascade delete child lists
+  await List.deleteMany({ board: boardId });
 
   // Delete the board
   await Board.findByIdAndDelete(boardId);

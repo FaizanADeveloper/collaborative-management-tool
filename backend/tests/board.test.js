@@ -7,6 +7,7 @@ const WorkspaceMember = require('../src/models/WorkspaceMember');
 const Board = require('../src/models/Board');
 const List = require('../src/models/List');
 const Card = require('../src/models/Card');
+const Comment = require('../src/models/Comment');
 const { generateToken } = require('../src/utils/token');
 
 describe('Milestone 05B: Board Foundation', () => {
@@ -637,6 +638,7 @@ describe('Milestone 05B: Board Foundation', () => {
       jest.spyOn(User, 'findById').mockResolvedValue(mockUser);
       jest.spyOn(Board, 'findById').mockResolvedValue(mockBoardDoc);
       jest.spyOn(WorkspaceMember, 'findOne').mockResolvedValue(mockMembershipDoc);
+      jest.spyOn(Comment, 'deleteMany').mockResolvedValue({ deletedCount: 0 });
       jest.spyOn(List, 'deleteMany').mockResolvedValue({ deletedCount: 3 });
       jest.spyOn(Card, 'deleteMany').mockResolvedValue({ deletedCount: 0 });
       jest.spyOn(Board, 'findByIdAndDelete').mockResolvedValue(mockBoardDoc);
@@ -647,6 +649,7 @@ describe('Milestone 05B: Board Foundation', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+      expect(Comment.deleteMany).toHaveBeenCalledWith({ board: targetBoardId.toString() });
       expect(List.deleteMany).toHaveBeenCalledWith({ board: targetBoardId.toString() });
       expect(Board.findByIdAndDelete).toHaveBeenCalledWith(targetBoardId.toString());
     });

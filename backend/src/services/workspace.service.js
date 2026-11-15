@@ -4,6 +4,7 @@ const WorkspaceMember = require('../models/WorkspaceMember');
 const Board = require('../models/Board');
 const List = require('../models/List');
 const Card = require('../models/Card');
+const Comment = require('../models/Comment');
 const ApiError = require('../utils/ApiError');
 
 /**
@@ -191,6 +192,9 @@ const deleteWorkspace = async (workspaceId, userId) => {
   // Find all boards belonging to this workspace
   const boards = await Board.find({ workspace: workspaceId }).select('_id');
   const boardIds = boards.map((b) => b._id);
+
+  // Cascade delete all comments in this workspace
+  await Comment.deleteMany({ workspace: workspaceId });
 
   // Cascade delete child cards and lists in these boards
   if (boardIds.length > 0) {

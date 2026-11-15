@@ -7,6 +7,7 @@ const WorkspaceMember = require('../src/models/WorkspaceMember');
 const Board = require('../src/models/Board');
 const List = require('../src/models/List');
 const Card = require('../src/models/Card');
+const Comment = require('../src/models/Comment');
 const { generateToken } = require('../src/utils/token');
 
 describe('Milestone 05A: Workspace Foundation', () => {
@@ -696,6 +697,7 @@ describe('Milestone 05A: Workspace Foundation', () => {
       jest.spyOn(Board, 'find').mockReturnValue({
         select: jest.fn().mockResolvedValue(mockBoards),
       });
+      jest.spyOn(Comment, 'deleteMany').mockResolvedValue({ deletedCount: 0 });
       jest.spyOn(Card, 'deleteMany').mockResolvedValue({ deletedCount: 12 });
       jest.spyOn(List, 'deleteMany').mockResolvedValue({ deletedCount: 5 });
       jest.spyOn(Board, 'deleteMany').mockResolvedValue({ deletedCount: 1 });
@@ -708,6 +710,7 @@ describe('Milestone 05A: Workspace Foundation', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+      expect(Comment.deleteMany).toHaveBeenCalledWith({ workspace: targetWorkspaceId.toString() });
       expect(Card.deleteMany).toHaveBeenCalledWith({ board: { $in: [mockBoardId] } });
       expect(List.deleteMany).toHaveBeenCalledWith({ board: { $in: [mockBoardId] } });
       expect(Board.deleteMany).toHaveBeenCalledWith({ workspace: targetWorkspaceId.toString() });
@@ -734,6 +737,7 @@ describe('Milestone 05A: Workspace Foundation', () => {
       jest.spyOn(Board, 'find').mockReturnValue({
         select: jest.fn().mockResolvedValue([]),
       });
+      jest.spyOn(Comment, 'deleteMany').mockResolvedValue({ deletedCount: 0 });
       jest.spyOn(Card, 'deleteMany').mockResolvedValue({ deletedCount: 0 });
       jest.spyOn(List, 'deleteMany').mockResolvedValue({ deletedCount: 0 });
       jest.spyOn(Board, 'deleteMany').mockResolvedValue({ deletedCount: 0 });
@@ -746,6 +750,7 @@ describe('Milestone 05A: Workspace Foundation', () => {
 
       expect(res.status).toBe(200);
       expect(res.body.success).toBe(true);
+      expect(Comment.deleteMany).toHaveBeenCalledWith({ workspace: targetWorkspaceId.toString() });
       expect(Card.deleteMany).not.toHaveBeenCalled();
       expect(List.deleteMany).not.toHaveBeenCalled();
       expect(Board.deleteMany).toHaveBeenCalledWith({ workspace: targetWorkspaceId.toString() });

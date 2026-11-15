@@ -1,4 +1,5 @@
 const Card = require('../models/Card');
+const Comment = require('../models/Comment');
 const List = require('../models/List');
 const Board = require('../models/Board');
 const WorkspaceMember = require('../models/WorkspaceMember');
@@ -219,6 +220,7 @@ const deleteCard = async (cardId, userId) => {
     boardId: card.board ? card.board.toString() : null,
   };
 
+  await Comment.deleteMany({ card: cardId });
   await Card.findByIdAndDelete(cardId);
   emitCardDeleted({ ...deletedMeta, actorId: userId });
 
