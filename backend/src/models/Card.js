@@ -80,6 +80,12 @@ const cardSchema = new mongoose.Schema(
 // Compound index for querying list cards in deterministic position order
 cardSchema.index({ list: 1, position: 1, createdAt: 1 });
 
+// Compound text index for workspace full-text search
+cardSchema.index(
+  { title: 'text', labels: 'text', description: 'text' },
+  { weights: { title: 10, labels: 8, description: 4 }, name: 'CardTextIndex' }
+);
+
 const Card = mongoose.model('Card', cardSchema);
 
 module.exports = Card;

@@ -6,6 +6,7 @@ const boardRoutes = require('./board.routes');
 const listRoutes = require('./list.routes');
 const cardRoutes = require('./card.routes');
 const commentRoutes = require('./comment.routes');
+const searchRoutes = require('./search.routes');
 
 const router = express.Router();
 
@@ -17,5 +18,6 @@ router.use('/', boardRoutes);
 router.use('/', listRoutes);
 router.use('/', cardRoutes);
 router.use('/', commentRoutes);
+router.use('/', searchRoutes);
 
 module.exports = router;

@@ -44,6 +44,12 @@ const boardSchema = new mongoose.Schema(
 // Index for efficient workspace-based board querying and sorting by creation date
 boardSchema.index({ workspace: 1, createdAt: -1 });
 
+// Compound text index for workspace full-text search
+boardSchema.index(
+  { name: 'text', description: 'text' },
+  { weights: { name: 10, description: 5 }, name: 'BoardTextIndex' }
+);
+
 const Board = mongoose.model('Board', boardSchema);
 
 module.exports = Board;

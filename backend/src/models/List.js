@@ -37,6 +37,12 @@ const listSchema = new mongoose.Schema(
 // Compound index for querying board lists in deterministic position order
 listSchema.index({ board: 1, position: 1, createdAt: 1 });
 
+// Text index for workspace full-text search
+listSchema.index(
+  { name: 'text' },
+  { weights: { name: 10 }, name: 'ListTextIndex' }
+);
+
 const List = mongoose.model('List', listSchema);
 
 module.exports = List;
