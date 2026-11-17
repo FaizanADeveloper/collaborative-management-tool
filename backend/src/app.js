@@ -5,8 +5,14 @@ const morgan = require('morgan');
 const env = require('./config/env');
 const apiRoutes = require('./routes');
 const { notFoundHandler, errorHandler } = require('./middleware/errorMiddleware');
+const { resolveAllowedOrigins } = require('./utils/corsOrigins');
 
 const app = express();
+
+// Trust reverse proxy (Render, Railway, ALB, Cloudflare) in production for rate limiting and IP resolution
+if (env.NODE_ENV === 'production') {
+  app.set('trust proxy', 1);
+}
 
 // Security HTTP headers
 app.use(helmet());
@@ -14,7 +20,7 @@ app.use(helmet());
 // Cross-Origin Resource Sharing
 app.use(
   cors({
-    origin: env.CLIENT_URL,
+    origin: resolveAllowedOrigins(env.CLIENT_URL),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'PATCH', 'DELETE', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],

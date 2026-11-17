@@ -4,6 +4,7 @@ const { socketAuthMiddleware } = require('./auth');
 const { registerRoomHandlers } = require('./rooms');
 const { clearPresence } = require('./presence');
 const { closeSocketAdapter } = require('../redis/adapter');
+const { resolveAllowedOrigins } = require('../utils/corsOrigins');
 
 let ioInstance = null;
 
@@ -17,7 +18,7 @@ let ioInstance = null;
 const initSocketServer = (httpServer) => {
   const io = new Server(httpServer, {
     cors: {
-      origin: env.CLIENT_URL,
+      origin: resolveAllowedOrigins(env.CLIENT_URL),
       credentials: true,
       methods: ['GET', 'POST'],
     },
