@@ -4,6 +4,7 @@ const List = require('../models/List');
 const Board = require('../models/Board');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const ApiError = require('../utils/ApiError');
+const { createNotification } = require('./notification.service');
 const {
   emitCardCreated,
   emitCardUpdated,
@@ -62,6 +63,24 @@ const createCard = async (listId, data, userId) => {
 
   const serialized = card.toJSON ? card.toJSON() : card;
   emitCardCreated({ card: serialized, actorId: userId });
+
+  // Notify newly assigned members
+  if (Array.isArray(data.assignees) && data.assignees.length > 0) {
+    for (const assigneeId of data.assignees) {
+      if (assigneeId && assigneeId.toString() !== userId.toString()) {
+        createNotification({
+          recipient: assigneeId,
+          actor: userId,
+          workspace: board.workspace,
+          type: 'task_assignment',
+          title: 'Assigned to card',
+          message: `You were assigned to "${card.title}"`,
+          resourceType: 'card',
+          resourceId: card._id,
+        }).catch(() => {});
+      }
+    }
+  }
 
   return serialized;
 };
@@ -169,7 +188,10 @@ const updateCard = async (cardId, data, userId) => {
   if (data.priority !== undefined) {
     card.priority = data.priority;
   }
+  let newlyAssigned = [];
   if (data.assignees !== undefined) {
+    const previousAssignees = new Set((card.assignees || []).map((a) => a.toString()));
+    newlyAssigned = (data.assignees || []).filter((a) => a && !previousAssignees.has(a.toString()));
     card.assignees = data.assignees;
   }
   if (data.dueDate !== undefined) {
@@ -184,6 +206,24 @@ const updateCard = async (cardId, data, userId) => {
 
   const serialized = card.toJSON ? card.toJSON() : card;
   emitCardUpdated({ card: serialized, actorId: userId });
+
+  // Notify newly assigned members
+  if (newlyAssigned.length > 0) {
+    for (const assigneeId of newlyAssigned) {
+      if (assigneeId.toString() !== userId.toString()) {
+        createNotification({
+          recipient: assigneeId,
+          actor: userId,
+          workspace: board.workspace,
+          type: 'task_assignment',
+          title: 'Assigned to card',
+          message: `You were assigned to "${card.title}"`,
+          resourceType: 'card',
+          resourceId: card._id,
+        }).catch(() => {});
+      }
+    }
+  }
 
   return serialized;
 };

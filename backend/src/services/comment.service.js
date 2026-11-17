@@ -3,6 +3,7 @@ const Card = require('../models/Card');
 const Board = require('../models/Board');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const ApiError = require('../utils/ApiError');
+const { createNotification } = require('./notification.service');
 const { emitCommentCreated, emitCommentDeleted } = require('../socket/events');
 
 /**
@@ -77,6 +78,29 @@ const createComment = async (cardId, data, userId) => {
 
   const serialized = comment.toJSON ? comment.toJSON() : comment;
   emitCommentCreated({ comment: serialized, actorId: userId });
+
+  // Notify card assignees about the new comment (excluding comment author)
+  if (Array.isArray(card.assignees) && card.assignees.length > 0) {
+    const authorName = comment.author?.name || 'A team member';
+    const preview =
+      data.content.length > 80 ? `${data.content.slice(0, 77)}...` : data.content;
+
+    for (const assigneeId of card.assignees) {
+      if (assigneeId && assigneeId.toString() !== userId.toString()) {
+        createNotification({
+          recipient: assigneeId,
+          actor: userId,
+          workspace: board.workspace,
+          type: 'card_comment',
+          title: `New comment on "${card.title}"`,
+          message: `${authorName}: ${preview}`,
+          resourceType: 'card',
+          resourceId: card._id,
+        }).catch(() => {});
+      }
+    }
+  }
+
   return serialized;
 };
 

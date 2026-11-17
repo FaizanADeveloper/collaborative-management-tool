@@ -17,6 +17,7 @@ const SOCKET_EVENTS = Object.freeze({
   COMMENT_CREATED: 'comment:created',
   COMMENT_DELETED: 'comment:deleted',
   CARD_TYPING: 'card:typing',
+  NOTIFICATION_NEW: 'notification:new',
 });
 
 const ALLOWED_BOARD_EVENTS = new Set(Object.values(SOCKET_EVENTS));
@@ -465,6 +466,31 @@ const emitCardTyping = ({
   }
 };
 
+/**
+ * Emits a real-time notification to a private user room `user:<userId>`.
+ * Distributed across all processes via Socket.IO Redis adapter.
+ *
+ * @param {string|mongoose.Types.ObjectId} recipientId - Target user ID
+ * @param {object} notification - Serialized notification payload
+ * @param {import('socket.io').Server|null} [ioOverride=null] - Optional Server instance override
+ * @returns {boolean} Whether emission was dispatched
+ */
+const emitNewNotification = (recipientId, notification, ioOverride = null) => {
+  const io = ioOverride || getIO();
+  if (!io) return false;
+
+  const resolvedRecipientId = toIdString(recipientId);
+  if (!isValidObjectId(resolvedRecipientId)) return false;
+
+  const room = `user:${resolvedRecipientId}`;
+  try {
+    io.to(room).emit(SOCKET_EVENTS.NOTIFICATION_NEW, notification);
+    return true;
+  } catch {
+    return false;
+  }
+};
+
 module.exports = {
   SOCKET_EVENTS,
   sanitizeCardPayload,
@@ -483,4 +509,5 @@ module.exports = {
   emitCommentCreated,
   emitCommentDeleted,
   emitCardTyping,
+  emitNewNotification,
 };

@@ -6,6 +6,7 @@ const List = require('../models/List');
 const Card = require('../models/Card');
 const Comment = require('../models/Comment');
 const ApiError = require('../utils/ApiError');
+const { createNotification } = require('./notification.service');
 
 /**
  * Generate a random URL-safe invitation code
@@ -282,6 +283,20 @@ const joinWorkspaceByInviteCode = async (inviteCode, userId) => {
     user: userId,
     role: 'member',
   });
+
+  // Notify workspace owner about the new member
+  if (workspace.owner && workspace.owner.toString() !== userId.toString()) {
+    createNotification({
+      recipient: workspace.owner,
+      actor: userId,
+      workspace: workspace._id,
+      type: 'workspace_join',
+      title: 'New member joined workspace',
+      message: `A new member joined "${workspace.name}" via invitation`,
+      resourceType: 'workspace',
+      resourceId: workspace._id,
+    }).catch(() => {});
+  }
 
   const ws = workspace.toJSON ? workspace.toJSON() : workspace;
   return {
