@@ -1,0 +1,165 @@
+name: Deployment Automation
+
+on:
+  workflow_dispatch:
+    inputs:
+      environment:
+        description: 'Deployment Target'
+        required: true
+        default: 'production'
+        type: choice
+        options:
+          - production
+          - staging
+
+concurrency:
+  group: deploy-${{ github.ref }}
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  verify:
+    name: Pre-Deployment Verification
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: 22.x
+          cache: 'npm'
+          cache-dependency-path: |
+            backend/package-lock.json
+            frontend/package-lock.json
+
+      - name: Install dependencies
+        run: |
+          npm ci --prefix backend
+          npm ci --prefix frontend
+
+      - name: Run backend unit tests
+        run: npm run test:unit --prefix backend
+        env:
+          NODE_ENV: test
+          JWT_SECRET: ci_test_jwt_secret_flowdesk_production_grade_minimum_32_chars
+          PORT: 5000
+
+      - name: Run frontend tests
+        run: npm run test --prefix frontend
+
+      - name: Build frontend production bundle
+        run: npm run build --prefix frontend
+        env:
+          VITE_API_URL: ${{ secrets.PRODUCTION_API_URL || '/api' }}
+          VITE_SOCKET_URL: ${{ secrets.PRODUCTION_SOCKET_URL || '' }}
+
+      - name: Archive build artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+          retention-days: 7
+
+  deploy-backend:
+    name: Deploy Backend Web Service
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Deploy via Render Hook (if configured)
+        if: ${{ env.HAS_RENDER_HOOK == 'true' }}
+        run: |
+          echo "Triggering Render backend deployment..."
+          HTTP_STATUS=$(curl -s -o /dev/null -w "%{http_code}" -X POST "${{ secrets.RENDER_DEPLOY_HOOK_URL }}")
+          if [ "$HTTP_STATUS" -ge 200 ] && [ "$HTTP_STATUS" -lt 300 ]; then
+            echo "Render deployment triggered successfully (HTTP $HTTP_STATUS)."
+          else
+            echo "Render deploy hook returned status $HTTP_STATUS"
+            exit 1
+          fi
+        env:
+          HAS_RENDER_HOOK: ${{ secrets.RENDER_DEPLOY_HOOK_URL != '' }}
+
+      - name: Deployment Instructions (when hook not configured)
+        if: ${{ env.HAS_RENDER_HOOK != 'true' }}
+        run: |
+          echo "Notice: RENDER_DEPLOY_HOOK_URL secret is not set in GitHub repository settings."
+          echo "To enable automated backend deployment:"
+          echo "1. Create a Web Service on Render/Railway using backend/Dockerfile or render.yaml."
+          echo "2. Add RENDER_DEPLOY_HOOK_URL to GitHub Secrets."
+
+  deploy-frontend:
+    name: Deploy Frontend Client
+    needs: verify
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - name: Download frontend dist artifact
+        uses: actions/download-artifact@v4
+        with:
+          name: frontend-dist
+          path: frontend/dist
+
+      - name: Deploy to Vercel (if configured)
+        if: ${{ env.HAS_VERCEL == 'true' }}
+        run: |
+          echo "Deploying frontend to Vercel..."
+          npx --yes vercel deploy --prod --prebuilt --token="${{ secrets.VERCEL_TOKEN }}"
+        env:
+          HAS_VERCEL: ${{ secrets.VERCEL_TOKEN != '' }}
+          VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
+          VERCEL_PROJECT_ID: ${{ secrets.VERCEL_PROJECT_ID }}
+
+      - name: Deploy to Netlify (if configured and Vercel unset)
+        if: ${{ env.HAS_NETLIFY == 'true' && env.HAS_VERCEL != 'true' }}
+        run: |
+          echo "Deploying frontend to Netlify..."
+          npx --yes netlify-cli deploy --dir=frontend/dist --prod --auth="${{ secrets.NETLIFY_AUTH_TOKEN }}" --site="${{ secrets.NETLIFY_SITE_ID }}"
+        env:
+          HAS_NETLIFY: ${{ secrets.NETLIFY_AUTH_TOKEN != '' }}
+
+      - name: Deployment Instructions (when static provider secrets not set)
+        if: ${{ env.HAS_VERCEL != 'true' && env.HAS_NETLIFY != 'true' }}
+        run: |
+          echo "Notice: Frontend hosting credentials (VERCEL_TOKEN or NETLIFY_AUTH_TOKEN) are not set."
+          echo "To enable automated frontend deployment:"
+          echo "1. Connect repository to Vercel or Netlify pointing to root or frontend/."
+          echo "2. Add VERCEL_TOKEN (or NETLIFY_AUTH_TOKEN + NETLIFY_SITE_ID) to GitHub Secrets."
+
+  post-deploy-health-check:
+    name: Post-Deployment Health Check
+    needs: [deploy-backend, deploy-frontend]
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    if: ${{ always() && !cancelled() && needs.verify.result == 'success' }}
+    steps:
+      - name: Verify Backend Health Check
+        if: ${{ env.HAS_HEALTH_URL == 'true' }}
+        run: |
+          URL="${{ secrets.PRODUCTION_BACKEND_URL || vars.PRODUCTION_BACKEND_URL }}/api/health"
+          echo "Probing backend health at $URL..."
+          for i in {1..8}; do
+            HTTP_CODE=$(curl -s -o response.json -w "%{http_code}" "$URL" || true)
+            echo "Attempt $i: HTTP $HTTP_CODE"
+            if [ "$HTTP_CODE" = "200" ]; then
+              cat response.json
+              echo ""
+              echo "Backend health check succeeded."
+              exit 0
+            fi
+            sleep 15
+          done
+          echo "Health check failed to return 200 within timeout."
+          exit 1
+        env:
+          HAS_HEALTH_URL: ${{ (secrets.PRODUCTION_BACKEND_URL || vars.PRODUCTION_BACKEND_URL) != '' }}
+
+      - name: Health Check Skip Notice
+        if: ${{ env.HAS_HEALTH_URL != 'true' }}
+        run: |
+          echo "Notice: PRODUCTION_BACKEND_URL is not set. Skipping post-deployment live curl probe."
