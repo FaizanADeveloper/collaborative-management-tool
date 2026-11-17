@@ -3,6 +3,7 @@ import { useNavigate } from 'react-router-dom';
 import { useUIStore } from '../../store/useUIStore';
 import { useWorkspaceStore } from '../../store/useWorkspaceStore';
 import { useBoardStore } from '../../store/useBoardStore';
+import { searchService } from '../../services/searchService';
 import {
   Search,
   KanbanSquare,
@@ -16,6 +17,7 @@ import {
   Settings,
   KeyRound,
   X,
+  Loader2,
 } from 'lucide-react';
 import { PriorityBadge } from '../common/Badge';
 
@@ -34,14 +36,17 @@ export const CommandPalette = () => {
   } = useUIStore();
 
   const { members, activeWorkspaceId } = useWorkspaceStore();
-  const { boards, lists, cardsByList, setActiveBoardId } = useBoardStore();
+  const { boards, lists, cardsByList, activeBoardId, setActiveBoardId } = useBoardStore();
 
   const [query, setQuery] = useState('');
   const [selectedIndex, setSelectedIndex] = useState(0);
+  const [remoteResults, setRemoteResults] = useState(null);
+  const [isSearching, setIsSearching] = useState(false);
   const navigate = useNavigate();
 
   const cards = Object.values(cardsByList).flat();
 
+  // Reset state on modal open/close
   useEffect(() => {
     const handleKeyDown = (e) => {
       if ((e.metaKey || e.ctrlKey) && e.key.toLowerCase() === 'k') {
@@ -51,6 +56,8 @@ export const CommandPalette = () => {
         } else {
           setQuery('');
           setSelectedIndex(0);
+          setRemoteResults(null);
+          setIsSearching(false);
           openCommandPalette();
         }
       } else if (e.key === 'Escape' && isCommandPaletteOpen) {
@@ -62,6 +69,52 @@ export const CommandPalette = () => {
     window.addEventListener('keydown', handleKeyDown);
     return () => window.removeEventListener('keydown', handleKeyDown);
   }, [isCommandPaletteOpen, openCommandPalette, closeCommandPalette]);
+
+  // Debounced live backend search (~250ms) with AbortController cancellation
+  useEffect(() => {
+    if (!isCommandPaletteOpen) {
+      setRemoteResults(null);
+      setIsSearching(false);
+      return undefined;
+    }
+
+    const clean = query.trim();
+    if (!clean || !activeWorkspaceId) {
+      setRemoteResults(null);
+      setIsSearching(false);
+      return undefined;
+    }
+
+    setIsSearching(true);
+    const abortController = new AbortController();
+
+    const timeoutId = setTimeout(async () => {
+      try {
+        const payload = await searchService.searchWorkspace(
+          activeWorkspaceId,
+          { q: clean, limit: 15 },
+          { signal: abortController.signal }
+        );
+        if (!abortController.signal.aborted) {
+          setRemoteResults(Array.isArray(payload?.results) ? payload.results : []);
+        }
+      } catch (err) {
+        if (err && err.name !== 'AbortError') {
+          // Gracefully fall back to local matching
+          setRemoteResults(null);
+        }
+      } finally {
+        if (!abortController.signal.aborted) {
+          setIsSearching(false);
+        }
+      }
+    }, 250);
+
+    return () => {
+      clearTimeout(timeoutId);
+      abortController.abort();
+    };
+  }, [query, activeWorkspaceId, isCommandPaletteOpen]);
 
   if (!isCommandPaletteOpen) return null;
 
@@ -181,7 +234,8 @@ export const CommandPalette = () => {
     },
   ];
 
-  const matchedCards = cards
+  // Local fallback card matching
+  const localMatchedCards = cards
     .filter(
       (c) =>
         (c.title || '').toLowerCase().includes(cleanQuery) ||
@@ -190,9 +244,9 @@ export const CommandPalette = () => {
     )
     .slice(0, 5)
     .map((c) => ({
-      id: `card-${c.id}`,
+      id: `local-card-${c.id}`,
       label: c.title,
-      subtitle: c.description,
+      subtitle: c.description || (c.board ? 'Card' : ''),
       card: c,
       category: 'Cards',
       icon: KanbanSquare,
@@ -203,7 +257,8 @@ export const CommandPalette = () => {
       },
     }));
 
-  const matchedBoards = boards
+  // Local fallback board matching
+  const localMatchedBoards = boards
     .filter(
       (b) =>
         (b.name || '').toLowerCase().includes(cleanQuery) ||
@@ -211,7 +266,7 @@ export const CommandPalette = () => {
     )
     .slice(0, 4)
     .map((b) => ({
-      id: `board-${b.id}`,
+      id: `local-board-${b.id}`,
       label: b.name,
       subtitle: b.description,
       category: 'Boards',
@@ -222,6 +277,71 @@ export const CommandPalette = () => {
         navigate(`/boards/${b.id}`);
       },
     }));
+
+  // Map remote search results if available
+  const remoteMatchedItems = Array.isArray(remoteResults)
+    ? remoteResults.map((item) => {
+        if (item.type === 'card') {
+          const boardName = item.board?.name || '';
+          const listName = item.list?.name || '';
+          const contextParts = [boardName, listName].filter(Boolean);
+          const subtitle = contextParts.length > 0 ? contextParts.join(' • ') : item.description || '';
+
+          return {
+            id: `card-${item.id}`,
+            label: item.title,
+            subtitle,
+            card: item,
+            category: 'Cards',
+            icon: KanbanSquare,
+            action: async () => {
+              closeCommandPalette();
+              const targetBoardId = item.board?.id || item.board;
+              if (targetBoardId && targetBoardId !== activeBoardId) {
+                await setActiveBoardId(targetBoardId);
+              }
+              navigate('/board');
+              openCardDetails(item.id);
+            },
+          };
+        }
+
+        if (item.type === 'board') {
+          return {
+            id: `board-${item.id}`,
+            label: item.name,
+            subtitle: item.description || 'Workspace board',
+            category: 'Boards',
+            icon: FolderKanban,
+            action: async () => {
+              closeCommandPalette();
+              await setActiveBoardId(item.id);
+              navigate(`/boards/${item.id}`);
+            },
+          };
+        }
+
+        if (item.type === 'list') {
+          return {
+            id: `list-${item.id}`,
+            label: item.name,
+            subtitle: `List in ${item.board?.name || 'Board'}`,
+            category: 'Lists',
+            icon: FolderKanban,
+            action: async () => {
+              closeCommandPalette();
+              const targetBoardId = item.board?.id || item.board;
+              if (targetBoardId && targetBoardId !== activeBoardId) {
+                await setActiveBoardId(targetBoardId);
+              }
+              navigate('/board');
+            },
+          };
+        }
+
+        return null;
+      }).filter(Boolean)
+    : null;
 
   const matchedMembers = members
     .filter(
@@ -250,13 +370,22 @@ export const CommandPalette = () => {
     ? systemActions.filter((a) => a.label.toLowerCase().includes(cleanQuery))
     : systemActions;
 
-  const allResults = [
-    ...matchedCards,
-    ...matchedBoards,
-    ...matchedMembers,
-    ...filteredSys,
-    ...filteredNav,
-  ];
+  // Use live remote results when available; otherwise use local fallback
+  const contentResults = remoteMatchedItems !== null
+    ? remoteMatchedItems
+    : [...localMatchedCards, ...localMatchedBoards];
+
+  const allResults = cleanQuery
+    ? [
+        ...contentResults,
+        ...matchedMembers,
+        ...filteredSys,
+        ...filteredNav,
+      ]
+    : [
+        ...filteredSys,
+        ...filteredNav,
+      ];
 
   const handleInputKeyDown = (e) => {
     if (allResults.length === 0) return;
@@ -297,20 +426,32 @@ export const CommandPalette = () => {
               setQuery(e.target.value);
               setSelectedIndex(0);
             }}
-            placeholder="Search cards, boards, members, or jump to a command..."
+            placeholder="Search cards, boards, lists, members, or commands..."
             aria-label="Command palette search"
             className="w-full bg-transparent border-0 px-3 py-4 text-ink placeholder-ink-muted focus:outline-none text-sm sm:text-base"
           />
+
+          {isSearching && (
+            <div className="p-1 mr-1 text-ink-muted flex items-center" aria-label="Searching...">
+              <Loader2 className="w-4 h-4 animate-spin text-brand" />
+            </div>
+          )}
+
           {query && (
             <button
               type="button"
-              onClick={() => setQuery('')}
+              onClick={() => {
+                setQuery('');
+                setRemoteResults(null);
+                setSelectedIndex(0);
+              }}
               aria-label="Clear search"
               className="p-1 text-ink-muted hover:text-ink rounded"
             >
               <X className="w-4 h-4" />
             </button>
           )}
+
           <kbd className="hidden sm:inline-block px-2 py-0.5 text-[11px] font-mono text-ink-muted bg-subtle border border-line rounded ml-2">
             ESC
           </kbd>
@@ -320,10 +461,16 @@ export const CommandPalette = () => {
           {allResults.length === 0 ? (
             <div className="py-12 text-center text-ink-muted text-sm">
               <Search className="w-8 h-8 mx-auto mb-2 opacity-30" />
-              <p>No results found for &ldquo;{query}&rdquo;</p>
-              <p className="text-xs mt-1">
-                Try searching for a card title, board name, teammate, or action.
-              </p>
+              {isSearching ? (
+                <p>Searching workspace content...</p>
+              ) : (
+                <>
+                  <p>No results found for &ldquo;{query}&rdquo;</p>
+                  <p className="text-xs mt-1">
+                    Try searching for a card title, description, board, list, or teammate.
+                  </p>
+                </>
+              )}
             </div>
           ) : (
             <div className="space-y-1">
@@ -388,7 +535,7 @@ export const CommandPalette = () => {
               select
             </span>
           </div>
-          <span className="text-brand font-medium">Flowdesk</span>
+          <span className="text-brand font-medium">Flowdesk Search</span>
         </div>
       </div>
     </div>

@@ -71,7 +71,7 @@ const normalizeFieldErrors = (errorsArray) => {
 
 export async function apiRequest(
   path,
-  { method = 'GET', body, headers = {}, skipAuth = false, timeoutMs = 15000 } = {}
+  { method = 'GET', body, headers = {}, skipAuth = false, timeoutMs = 15000, signal } = {}
 ) {
   const baseUrl = getApiBaseUrl();
   const normalizedPath = path.startsWith('/') ? path : `/${path}`;
@@ -94,6 +94,13 @@ export async function apiRequest(
   }
 
   const controller = typeof AbortController !== 'undefined' ? new AbortController() : null;
+  if (signal && controller) {
+    if (signal.aborted) {
+      controller.abort();
+    } else {
+      signal.addEventListener('abort', () => controller.abort(), { once: true });
+    }
+  }
   const timeoutId = controller ? setTimeout(() => controller.abort(), timeoutMs) : null;
 
   let response;
@@ -106,6 +113,11 @@ export async function apiRequest(
     });
   } catch (err) {
     if (timeoutId) clearTimeout(timeoutId);
+    if (signal?.aborted) {
+      const abortError = new ApiClientError('Request aborted', { status: 0, isNetworkError: false });
+      abortError.name = 'AbortError';
+      throw abortError;
+    }
     const isAbort = err && err.name === 'AbortError';
     throw new ApiClientError(
       isAbort
