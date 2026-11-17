@@ -2,6 +2,7 @@ const http = require('http');
 const app = require('./app');
 const env = require('./config/env');
 const { connectDB, disconnectDB } = require('./config/db');
+const { initRedis, closeRedis, initSocketAdapter } = require('./redis');
 const { initSocketServer, closeSocketServer } = require('./socket');
 
 let server;
@@ -11,8 +12,12 @@ const startServer = async () => {
     // Attempt database connection
     await connectDB();
 
+    // Initialize Redis client if configured
+    await initRedis();
+
     server = http.createServer(app);
-    initSocketServer(server);
+    const io = initSocketServer(server);
+    await initSocketAdapter(io);
 
     server.listen(env.PORT, () => {
       console.log(`[Server] Server running in ${env.NODE_ENV} mode on port ${env.PORT}`);
@@ -27,6 +32,7 @@ const startServer = async () => {
 
 const finishShutdown = async () => {
   try {
+    await closeRedis();
     await disconnectDB();
     console.log('[Server] Graceful shutdown completed.');
     process.exit(0);

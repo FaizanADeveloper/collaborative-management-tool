@@ -4,11 +4,14 @@ const Card = require('../models/Card');
 const WorkspaceMember = require('../models/WorkspaceMember');
 const {
   trackBoardJoin,
+  renewSocketHeartbeat,
   trackBoardLeave,
   handleSocketDisconnect,
   sanitizePresenceUser,
   isUserTypingOnBoardCard,
-} = require('./presence');
+  setCardTypingStatus,
+  isUserTypingDistributed,
+} = require('../redis');
 
 let eventsModule = null;
 const getEvents = () => {
@@ -212,7 +215,7 @@ const registerRoomHandlers = async (io, socket) => {
       const room = getBoardRoom(auth.boardId);
       await socket.join(room);
 
-      const joinResult = trackBoardJoin(socket, auth.boardId);
+      const joinResult = await trackBoardJoin(socket, auth.boardId);
 
       if (
         joinResult.previousLeave?.isLastSocketForUser &&
@@ -247,6 +250,28 @@ const registerRoomHandlers = async (io, socket) => {
     }
   });
 
+  socket.on('presence:heartbeat', async (payload, callback) => {
+    try {
+      const boardId = parseResourceId(payload, 'boardId');
+      if (!boardId || !mongoose.isObjectIdOrHexString(boardId)) {
+        return sendAck(callback, {
+          ok: false,
+          code: 'INVALID_ID',
+          error: 'Invalid board identifier.',
+        });
+      }
+
+      const renewed = await renewSocketHeartbeat(socket, boardId);
+      return sendAck(callback, { ok: renewed, boardId });
+    } catch {
+      return sendAck(callback, {
+        ok: false,
+        code: 'INTERNAL_ERROR',
+        error: 'Failed to renew presence heartbeat.',
+      });
+    }
+  });
+
   socket.on('board:leave', async (payload, callback) => {
     try {
       const boardId = parseResourceId(payload, 'boardId');
@@ -258,7 +283,7 @@ const registerRoomHandlers = async (io, socket) => {
         });
       }
 
-      const leaveResult = trackBoardLeave(socket, boardId);
+      const leaveResult = await trackBoardLeave(socket, boardId);
       const room = getBoardRoom(boardId);
       await socket.leave(room);
 
@@ -268,7 +293,9 @@ const registerRoomHandlers = async (io, socket) => {
           if (record.boardId === boardId) {
             if (record.timer) clearTimeout(record.timer);
             socket._activeTyping.delete(key);
-            if (!isUserTypingOnBoardCard(record.boardId, record.cardId, record.user.id, socket.id, io)) {
+            await setCardTypingStatus(record.boardId, record.cardId, record.user.id, socket.id, false);
+            const stillTyping = await isUserTypingDistributed(record.boardId, record.cardId, record.user.id, socket.id, io);
+            if (!stillTyping) {
               getEvents().emitCardTyping({
                 boardId: record.boardId,
                 cardId: record.cardId,
@@ -380,12 +407,15 @@ const registerRoomHandlers = async (io, socket) => {
       }
 
       if (isTyping) {
+        await setCardTypingStatus(boardId, cardId, user.id, socket.id, true);
         // Safety timeout to auto-clear typing if client stops unexpectedly
-        const timer = setTimeout(() => {
+        const timer = setTimeout(async () => {
           const current = socket._activeTyping?.get(typingKey);
           if (current && current.timer === timer) {
             socket._activeTyping.delete(typingKey);
-            if (!isUserTypingOnBoardCard(boardId, cardId, user.id, socket.id, io)) {
+            await setCardTypingStatus(boardId, cardId, user.id, socket.id, false);
+            const stillTyping = await isUserTypingDistributed(boardId, cardId, user.id, socket.id, io);
+            if (!stillTyping) {
               getEvents().emitCardTyping({
                 boardId,
                 cardId,
@@ -408,7 +438,9 @@ const registerRoomHandlers = async (io, socket) => {
         });
       } else {
         socket._activeTyping.delete(typingKey);
-        if (!isUserTypingOnBoardCard(boardId, cardId, user.id, socket.id, io)) {
+        await setCardTypingStatus(boardId, cardId, user.id, socket.id, false);
+        const stillTyping = await isUserTypingDistributed(boardId, cardId, user.id, socket.id, io);
+        if (!stillTyping) {
           getEvents().emitCardTyping({
             boardId,
             cardId,
@@ -429,12 +461,14 @@ const registerRoomHandlers = async (io, socket) => {
     }
   });
 
-  socket.on('disconnecting', () => {
+  socket.on('disconnecting', async () => {
     try {
       if (socket._activeTyping) {
         for (const record of socket._activeTyping.values()) {
           if (record.timer) clearTimeout(record.timer);
-          if (!isUserTypingOnBoardCard(record.boardId, record.cardId, record.user.id, socket.id, io)) {
+          await setCardTypingStatus(record.boardId, record.cardId, record.user.id, socket.id, false);
+          const stillTyping = await isUserTypingDistributed(record.boardId, record.cardId, record.user.id, socket.id, io);
+          if (!stillTyping) {
             getEvents().emitCardTyping({
               boardId: record.boardId,
               cardId: record.cardId,
@@ -447,7 +481,7 @@ const registerRoomHandlers = async (io, socket) => {
         socket._activeTyping.clear();
       }
 
-      const leaveResult = handleSocketDisconnect(socket);
+      const leaveResult = await handleSocketDisconnect(socket);
       if (
         leaveResult?.isLastSocketForUser &&
         leaveResult?.userId &&

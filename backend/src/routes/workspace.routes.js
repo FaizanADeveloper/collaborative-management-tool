@@ -3,6 +3,7 @@ const workspaceController = require('../controllers/workspace.controller');
 const authenticate = require('../middleware/auth.middleware');
 const validate = require('../middleware/validate.middleware');
 const validateParams = require('../middleware/validateParams.middleware');
+const { mutationLimiter } = require('../middleware/rateLimiter');
 const {
   createWorkspaceSchema,
   updateWorkspaceSchema,
@@ -17,7 +18,7 @@ const router = express.Router();
 router.use(authenticate);
 
 // Workspace collection routes
-router.post('/', validate(createWorkspaceSchema), workspaceController.createWorkspace);
+router.post('/', mutationLimiter, validate(createWorkspaceSchema), workspaceController.createWorkspace);
 router.get('/', workspaceController.getUserWorkspaces);
 
 // Workspace invitation join route

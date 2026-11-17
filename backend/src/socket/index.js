@@ -3,6 +3,7 @@ const env = require('../config/env');
 const { socketAuthMiddleware } = require('./auth');
 const { registerRoomHandlers } = require('./rooms');
 const { clearPresence } = require('./presence');
+const { closeSocketAdapter } = require('../redis/adapter');
 
 let ioInstance = null;
 
@@ -49,6 +50,7 @@ const getIO = () => ioInstance;
  */
 const closeSocketServer = async () => {
   clearPresence();
+  await closeSocketAdapter();
   if (!ioInstance) return;
   const activeIO = ioInstance;
   ioInstance = null;

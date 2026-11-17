@@ -32,6 +32,14 @@ const envSchema = z.object({
     .default('development_default_jwt_secret_collaborative_tool_key_2026'),
   JWT_EXPIRES_IN: z.string().default('7d'),
   CLIENT_URL: z.string().default('http://localhost:3000'),
+  REDIS_URL: z
+    .string()
+    .refine(
+      (val) => !val || val.startsWith('redis://') || val.startsWith('rediss://'),
+      { message: 'REDIS_URL must be a valid Redis connection string starting with redis:// or rediss://' }
+    )
+    .optional()
+    .or(z.literal('')),
 });
 
 const parseResult = envSchema.safeParse(process.env);

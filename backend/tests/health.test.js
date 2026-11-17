@@ -15,6 +15,8 @@ describe('Health and Application Foundation Integration Tests', () => {
       expect(res.body.services).toHaveProperty('api', 'healthy');
       // Accurately reports disconnected status when no live DB connection is present
       expect(res.body.services).toHaveProperty('database', 'disconnected');
+      expect(res.body.services).toHaveProperty('redis');
+      expect(res.body.services).toHaveProperty('socketAdapter');
     });
   });
 
