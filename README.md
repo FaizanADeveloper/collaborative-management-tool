@@ -151,19 +151,32 @@ Configure these in **GitHub Settings > Secrets and variables > Actions**:
 
 ---
 
-## 7. Production Deployment Guides
+## 7. Production Deployment Guide (Render + Vercel Architecture)
 
-### Option A: Render (Recommended Blueprint)
-1. Fork or push repository to GitHub.
-2. In Render, select **New > Blueprint** and select `render.yaml`.
-3. Provide your environment variables (`MONGODB_URI`, `CLIENT_URL`, `REDIS_URL`).
-4. Render automatically provisions the backend Web Service and the frontend Static Site.
+### 1. Backend Web Service (Render)
+1. In [Render Dashboard](https://dashboard.render.com), select **New > Blueprint** and connect this repository (or select **New > Web Service** pointing to `rootDir: backend`).
+2. When prompted by `render.yaml`, configure the environment variables:
+   - `MONGODB_URI`: Your MongoDB Atlas connection URI (`mongodb+srv://...`).
+   - `REDIS_URL`: Your Redis Cloud connection URI (`redis://...`).
+   - `CLIENT_URL`: Your Vercel frontend URL (e.g. `https://flowdesk.vercel.app`).
+   - `JWT_SECRET`: High-entropy string (or let Render auto-generate).
+   - `JWT_EXPIRES_IN`: `7d`
+3. Render automatically provisions and deploys `flowdesk-api` with health checks on `/api/health`.
+4. Copy your live Render service URL (e.g. `https://flowdesk-api.onrender.com`).
 
-### Option B: Vercel (Frontend) + Render / Railway (Backend)
-1. **Backend:** Deploy `backend/` as a Node web service. Set `PORT=5000`, `NODE_ENV=production`, `MONGODB_URI`, `JWT_SECRET`, `REDIS_URL`, and `CLIENT_URL=https://your-app.vercel.app`.
-2. **Frontend:** Import `frontend/` in Vercel. Set build command to `npm run build`, output directory to `dist`. Set `VITE_API_URL=https://your-backend.onrender.com/api`.
+### 2. Frontend Client (Vercel)
+1. In [Vercel Dashboard](https://vercel.com/new), import your GitHub repository.
+2. In Project Settings:
+   - **Root Directory:** Set to `frontend`.
+   - **Framework Preset:** Vite (auto-detected via `frontend/vercel.json`).
+   - **Build Command:** `npm run build`
+   - **Output Directory:** `dist`
+3. Add Environment Variable:
+   - `VITE_API_URL`: Your Render backend URL with `/api` path (e.g. `https://flowdesk-api.onrender.com/api`).
+4. Click **Deploy**. Vercel automatically deploys the static SPA with full rewrite fallback support.
+5. Copy your live Vercel URL and update `CLIENT_URL` in Render if needed.
 
-### Option C: Docker Containers
+### 3. Alternative: Docker Containers
 - **Backend:** `docker build -t flowdesk-backend backend/`
 - **Frontend:** `docker build -t flowdesk-frontend frontend/`
 

@@ -107,9 +107,10 @@ jobs:
 
       - name: Deploy to Vercel (if configured)
         if: ${{ env.HAS_VERCEL == 'true' }}
+        working-directory: frontend
         run: |
           echo "Deploying frontend to Vercel..."
-          npx --yes vercel deploy --prod --prebuilt --token="${{ secrets.VERCEL_TOKEN }}"
+          npx --yes vercel deploy --prod --token="${{ secrets.VERCEL_TOKEN }}" --yes
         env:
           HAS_VERCEL: ${{ secrets.VERCEL_TOKEN != '' }}
           VERCEL_ORG_ID: ${{ secrets.VERCEL_ORG_ID }}
