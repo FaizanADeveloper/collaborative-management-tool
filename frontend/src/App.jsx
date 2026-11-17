@@ -25,6 +25,7 @@ import { useUIStore } from './store/useUIStore';
 import { useAuthStore } from './store/useAuthStore';
 import { useWorkspaceStore } from './store/useWorkspaceStore';
 import { useBoardStore } from './store/useBoardStore';
+import { useNotificationStore } from './store/useNotificationStore';
 import {
   connectSocket,
   disconnectSocket,
@@ -104,6 +105,11 @@ const AppLayout = ({ children }) => {
   }, [isAuthenticated, activeWorkspaceId, fetchBoards, clearForWorkspaceChange]);
 
   useEffect(() => {
+    if (!isAuthenticated) return;
+    useNotificationStore.getState().fetchUnreadCount(activeWorkspaceId);
+  }, [isAuthenticated, activeWorkspaceId]);
+
+  useEffect(() => {
     setActiveWorkspaceRoom(isAuthenticated ? activeWorkspaceId : null);
     return () => {
       setActiveWorkspaceRoom(null);
@@ -142,6 +148,16 @@ const AppLayout = ({ children }) => {
       subscribeSocketStatus((status) => {
         if (status === 'disconnected') {
           boardActions.clearAllTyping();
+        }
+      }),
+      subscribeSocketEvent('notification:new', (notification) => {
+        useNotificationStore.getState().applySocketNotification(notification);
+        if (notification?.title) {
+          useUIStore.getState().addToast({
+            type: 'info',
+            title: notification.title,
+            message: notification.message || '',
+          });
         }
       }),
     ];

@@ -5,6 +5,7 @@ import { useBoardStore } from '../../store/useBoardStore';
 import { useAuthStore } from '../../store/useAuthStore';
 import { Avatar } from '../common/Avatar';
 import { Button } from '../common/Button';
+import { NotificationDropdown } from '../notifications/NotificationDropdown';
 import {
   Search,
   Plus,
@@ -115,6 +116,8 @@ export const Navbar = () => {
         >
           New Card
         </Button>
+
+        <NotificationDropdown />
 
         <button
           type="button"
