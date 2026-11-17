@@ -26,6 +26,7 @@ Ensure the following variables are configured in `backend/.env`:
 | `JWT_SECRET` | Recommended | String (at least 10 characters) | Built-in dev fallback |
 | `JWT_EXPIRES_IN` | Optional | `7d` | `7d` |
 | `CLIENT_URL` | Optional | `http://localhost:3000` | `http://localhost:3000` |
+| `REDIS_URL` | Optional | `redis://default:<password>@<host>:<port>` | In-memory fallback mode |
 
 > [!IMPORTANT]
 > The test suites reuse the single `MONGODB_URI` configuration. No separate test database URI (`MONGODB_TEST_URI`) or database re-configuration is required.
